@@ -64,6 +64,25 @@ python -m prd_agent.run --auto --idea "..." --out my-feature
 
 The final PRD is written to `output/<name>.md`.
 
+## Web UI (Wells Fargo–themed)
+
+A FastAPI backend (`web.py`) wraps the same graph and serves a single-page UI
+(`static/`) styled after Wells Fargo (red/gold palette, wordmark, stagecoach
+emblem) — an internal demo mockup, not an official Wells Fargo product.
+
+```bash
+pip install -r ../requirements.txt
+uvicorn prd_agent.web:app          # or: python -m prd_agent.web   (PORT env optional)
+# then open http://localhost:8000
+```
+
+The page lets you enter an idea, pick a PRD format, choose Auto or Interactive
+mode, and watch the seven stages fill in. In Interactive mode the UI surfaces
+each `interrupt` (the idea ask, then the generated questions) as an input panel.
+The same `PRD_FAKE_LLM=1` switch runs the UI offline.
+
+API: `GET /api/meta`, `GET /api/styles`, `POST /api/start`, `POST /api/resume`.
+
 ## Configuration
 
 | Env var | Purpose | Default |

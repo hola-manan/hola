@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wells Fargo · PRD Studio</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="appbar" role="banner">
+    <div class="appbar__inner">
+      <div class="brand">
+        <!-- Stagecoach-style emblem (decorative) -->
+        <svg class="brand__emblem" viewBox="0 0 64 40" aria-hidden="true" focusable="false">
+          <g fill="none" stroke="#FFCD41" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M6 26h34l8-7h8v7" fill="#B31B1B"/>
+            <path d="M6 26V15h22l6 4"/>
+            <path d="M10 15V11h14v4"/>
+            <line x1="2" y1="26" x2="56" y2="26"/>
+          </g>
+          <circle cx="16" cy="31" r="5" fill="#7a1014" stroke="#FFCD41" stroke-width="2.2"/>
+          <circle cx="44" cy="31" r="5" fill="#7a1014" stroke="#FFCD41" stroke-width="2.2"/>
+        </svg>
+        <div class="brand__text">
+          <span class="brand__name">WELLS FARGO</span>
+          <span class="brand__product">PRD&nbsp;Studio</span>
+        </div>
+      </div>
+      <div class="appbar__meta">
+        <span class="badge" id="modelBadge">model: …</span>
+      </div>
+    </div>
+    <div class="appbar__rule" aria-hidden="true"></div>
+  </header>
+
+  <main id="main" class="container" role="main">
+    <h1 class="page-title">Generate a Product Requirements Document</h1>
+    <p class="page-sub">A seven-step, evidence-driven workflow: interview &rarr; draft &rarr; pressure-test &rarr; finalize.</p>
+
+    <section class="card config" aria-labelledby="cfgHeading">
+      <h2 id="cfgHeading" class="card__title">Start a new PRD</h2>
+      <div class="field">
+        <label for="idea">Product idea</label>
+        <textarea id="idea" rows="2" placeholder="e.g. a Slack bot that summarizes long threads"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="style">PRD format</label>
+          <select id="style">
+            <option value="">Default (structured PRD)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="mode">Mode</label>
+          <select id="mode">
+            <option value="auto">Auto — AI answers the interview</option>
+            <option value="interactive">Interactive — I answer</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="startBtn" class="btn btn--primary" type="button">Generate PRD</button>
+        <span id="status" class="status" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section id="interrupt" class="card interrupt" hidden aria-labelledby="intHeading">
+      <h2 id="intHeading" class="card__title">Your input is needed</h2>
+      <div id="interruptPrompt" class="interrupt__prompt"></div>
+      <div class="field">
+        <label for="answer">Your response</label>
+        <textarea id="answer" rows="4" placeholder="Type your answer…"></textarea>
+      </div>
+      <div class="actions">
+        <button id="submitBtn" class="btn btn--primary" type="button">Submit &amp; continue</button>
+      </div>
+    </section>
+
+    <section class="flow" aria-label="PRD stages">
+      <ol id="stages" class="stages"></ol>
+    </section>
+
+    <section id="done" class="card done" hidden aria-live="polite">
+      <h2 class="card__title">PRD complete</h2>
+      <p id="donePath" class="done__path"></p>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="footer__inner">
+      <span>&copy; <span id="year"></span> · Internal demo mockup — not an official Wells Fargo product.</span>
+      <span class="footer__sep">·</span>
+      <span>PRD Studio</span>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

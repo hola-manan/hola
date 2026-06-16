@@ -82,4 +82,18 @@ def read_style(name: str) -> str | None:
     return path.read_text(encoding="utf-8") if path else None
 
 
+def available_styles() -> list[dict]:
+    """Return [{key, title}] for every PRD process style in prds/.
+
+    Mirrors list_prd_styles so the web dropdown and the --style CLI keys stay in sync.
+    """
+    styles = []
+    for path in sorted(PRDS_DIR.glob("[0-9][0-9]-*.md")):
+        key = re.sub(r"^\d+-", "", path.stem)
+        title = path.read_text(encoding="utf-8").splitlines()[0].lstrip("# ").strip()
+        title = re.sub(r"^\d+\.\s*", "", title)  # drop leading "1. " numbering
+        styles.append({"key": key, "title": title})
+    return styles
+
+
 STYLE_TOOLS = [list_prd_styles, get_prd_style]
