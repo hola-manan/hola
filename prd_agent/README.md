@@ -22,6 +22,12 @@ The graph is a linear `StateGraph` — one node per prompt, START → 1 → … 
 Each node loads its instruction **verbatim** from the corresponding prompt file
 (the fenced block), so the authored wording is the single source of truth.
 
+The stage order, titles, prompt filenames, and output fields all live in one
+place — `stages.py` (`STAGES`). The graph (nodes + edges), the web layer (UI
+titles, `/api/stages`), and the CLI banners are all derived from it, and every
+prompt is validated at startup (`validate_prompts`) so a missing or malformed
+prompt fails fast instead of mid-run.
+
 ## Human-in-the-loop
 
 The two human turns (the rough idea, and the interview answers) use LangGraph

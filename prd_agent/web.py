@@ -25,23 +25,17 @@ from pydantic import BaseModel
 
 from .graph import build_graph
 from .llm import model_name
+from .stages import STAGES
 from .tools import available_styles
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 # One compiled graph for the process; per-run isolation is via thread_id.
+# build_graph() validates every prompt, so a bad prompt fails app startup.
 _GRAPH = build_graph(checkpointer=MemorySaver())
 
-# Ordered mapping of state key -> human title for the 7 stages.
-STAGE_TITLES: list[tuple[str, str]] = [
-    ("questions", "Discovery interview"),
-    ("decision_ledger", "Answers & gap resolution"),
-    ("draft", "PRD draft"),
-    ("critique", "Adversarial pressure-test"),
-    ("additions", "Completeness sweep"),
-    ("summaries", "Audience summaries"),
-    ("final_prd", "Final PRD"),
-]
+# Ordered (state key, title) pairs for the UI, straight from the stage registry.
+STAGE_TITLES: list[tuple[str, str]] = [(s.field, s.title) for s in STAGES]
 
 app = FastAPI(title="PRD Studio")
 
@@ -97,6 +91,12 @@ def meta() -> dict:
 @app.get("/api/styles")
 def styles() -> list[dict]:
     return available_styles()
+
+
+@app.get("/api/stages")
+def stages_list() -> list[dict]:
+    """The ordered stage titles, so the UI doesn't hardcode them."""
+    return [{"title": s.title, "field": s.field} for s in STAGES]
 
 
 @app.post("/api/start")

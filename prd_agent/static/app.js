@@ -163,16 +163,11 @@ async function init() {
       sel.appendChild(opt);
     });
   } catch { /* leave default option */ }
-  // empty placeholder stepper
-  renderStages([
-    { title: "Discovery interview", done: false, content: "" },
-    { title: "Answers & gap resolution", done: false, content: "" },
-    { title: "PRD draft", done: false, content: "" },
-    { title: "Adversarial pressure-test", done: false, content: "" },
-    { title: "Completeness sweep", done: false, content: "" },
-    { title: "Audience summaries", done: false, content: "" },
-    { title: "Final PRD", done: false, content: "" },
-  ]);
+  // empty placeholder stepper, titles from the backend stage registry
+  try {
+    const stages = await (await fetch("/api/stages")).json();
+    renderStages(stages.map((s) => ({ title: s.title, done: false, content: "" })));
+  } catch { renderStages([]); }
   $("#startBtn").addEventListener("click", onStart);
   $("#submitBtn").addEventListener("click", onSubmit);
 }

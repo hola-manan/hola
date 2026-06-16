@@ -15,7 +15,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from .llm import get_llm
-from .prompts import load_prompt
+from .prompts import get_prompt, validate_prompts
+from .stages import STAGE_BY_NODE, STAGE_NUMBER, STAGES
 from .state import PRDState
 from .tools import STYLE_TOOLS, read_style, save_prd
 
@@ -61,15 +62,16 @@ def _invoke_with_tools(system: str, user: str, tools: list, max_tokens: int = 80
     return _text(resp)
 
 
-def _banner(stage_num: int, title: str) -> None:
-    print(f"\n{'=' * 70}\n[{stage_num}/7] {title}\n{'=' * 70}", flush=True)
+def _banner(node: str) -> None:
+    stage = STAGE_BY_NODE[node]
+    print(f"\n{'=' * 70}\n[{STAGE_NUMBER[node]}/{len(STAGES)}] {stage.title}\n{'=' * 70}", flush=True)
 
 
 # --------------------------------------------------------------------------- #
 # Nodes
 # --------------------------------------------------------------------------- #
 def discovery_interview(state: PRDState) -> dict:
-    _banner(1, "Discovery interview")
+    _banner("discovery_interview")
     idea = state.get("idea")
     if not idea:
         if state.get("mode") == "auto":
@@ -77,7 +79,7 @@ def discovery_interview(state: PRDState) -> dict:
         else:
             idea = interrupt({"stage": "idea", "prompt": "Describe your rough product idea (one line):"})
 
-    system = load_prompt("discovery_interview")
+    system = get_prompt("discovery_interview")
     user = f"The idea: {idea}\n\nProduce your interview questions now, following your instructions exactly."
     questions = _invoke(system, user)
     print(questions, flush=True)
@@ -85,7 +87,7 @@ def discovery_interview(state: PRDState) -> dict:
 
 
 def gap_resolution(state: PRDState) -> dict:
-    _banner(2, "Answers + gap resolution")
+    _banner("gap_resolution")
     questions = state["questions"]
     if state.get("mode") == "auto":
         stakeholder_sys = (
@@ -102,7 +104,7 @@ def gap_resolution(state: PRDState) -> dict:
     else:
         answers = interrupt({"stage": "answers", "prompt": questions})
 
-    system = load_prompt("gap_resolution")
+    system = get_prompt("gap_resolution")
     user = (
         f"The idea: {state['idea']}\n\nYour earlier questions:\n{questions}\n\n"
         f"Here are my answers:\n{answers}\n\nNow follow your instructions."
@@ -113,8 +115,8 @@ def gap_resolution(state: PRDState) -> dict:
 
 
 def draft_generation(state: PRDState) -> dict:
-    _banner(3, "PRD draft generation")
-    system = load_prompt("draft_generation")
+    _banner("draft_generation")
+    system = get_prompt("draft_generation")
     style = state.get("style")
     style_note = ""
     tools_used = False
@@ -139,8 +141,8 @@ def draft_generation(state: PRDState) -> dict:
 
 
 def pressure_test(state: PRDState) -> dict:
-    _banner(4, "Adversarial pressure-test")
-    system = load_prompt("pressure_test")
+    _banner("pressure_test")
+    system = get_prompt("pressure_test")
     user = f"Here is the PRD draft to attack:\n\n{state['draft']}"
     critique = _invoke(system, user)
     print(critique, flush=True)
@@ -148,8 +150,8 @@ def pressure_test(state: PRDState) -> dict:
 
 
 def completeness_sweep(state: PRDState) -> dict:
-    _banner(5, "Completeness & edge-case sweep")
-    system = load_prompt("completeness_sweep")
+    _banner("completeness_sweep")
+    system = get_prompt("completeness_sweep")
     user = (
         f"Here is the current PRD:\n\n{state['draft']}\n\n"
         f"(Pressure-test findings for context, do not merely repeat them:\n{state['critique']})"
@@ -160,8 +162,8 @@ def completeness_sweep(state: PRDState) -> dict:
 
 
 def audience_summaries(state: PRDState) -> dict:
-    _banner(6, "Audience-tailored summaries")
-    system = load_prompt("audience_summaries")
+    _banner("audience_summaries")
+    system = get_prompt("audience_summaries")
     user = (
         f"Current PRD:\n\n{state['draft']}\n\nAdditions from the completeness sweep:\n"
         f"{state['additions']}\n\nProduce the three summaries now."
@@ -172,8 +174,8 @@ def audience_summaries(state: PRDState) -> dict:
 
 
 def finalization(state: PRDState) -> dict:
-    _banner(7, "Finalization")
-    system = load_prompt("finalization")
+    _banner("finalization")
+    system = get_prompt("finalization")
     user = (
         "Integrate everything into the final PRD.\n\n"
         f"=== DRAFT ===\n{state['draft']}\n\n"
@@ -194,24 +196,39 @@ def finalization(state: PRDState) -> dict:
 # --------------------------------------------------------------------------- #
 # Graph assembly
 # --------------------------------------------------------------------------- #
-def build_graph(checkpointer=None):
-    """Build and compile the PRD graph. A checkpointer is required for interrupts."""
-    g = StateGraph(PRDState)
-    g.add_node("discovery_interview", discovery_interview)
-    g.add_node("gap_resolution", gap_resolution)
-    g.add_node("draft_generation", draft_generation)
-    g.add_node("pressure_test", pressure_test)
-    g.add_node("completeness_sweep", completeness_sweep)
-    g.add_node("audience_summaries", audience_summaries)
-    g.add_node("finalization", finalization)
+# Map each stage's node name to its implementation.
+_NODE_FUNCS = {
+    "discovery_interview": discovery_interview,
+    "gap_resolution": gap_resolution,
+    "draft_generation": draft_generation,
+    "pressure_test": pressure_test,
+    "completeness_sweep": completeness_sweep,
+    "audience_summaries": audience_summaries,
+    "finalization": finalization,
+}
 
-    g.add_edge(START, "discovery_interview")
-    g.add_edge("discovery_interview", "gap_resolution")
-    g.add_edge("gap_resolution", "draft_generation")
-    g.add_edge("draft_generation", "pressure_test")
-    g.add_edge("pressure_test", "completeness_sweep")
-    g.add_edge("completeness_sweep", "audience_summaries")
-    g.add_edge("audience_summaries", "finalization")
-    g.add_edge("finalization", END)
+
+def build_graph(checkpointer=None):
+    """Build and compile the PRD graph from the stage registry.
+
+    Validates every prompt up front (fail fast) and derives the node list and the
+    linear edges from ``stages.STAGES`` so order/structure live in one place. A
+    checkpointer is required for the interrupt/resume (human-in-the-loop) flow.
+    """
+    validate_prompts()
+
+    # Every stage must have a node implementation — guard against registry drift.
+    missing = [s.node for s in STAGES if s.node not in _NODE_FUNCS]
+    if missing:
+        raise RuntimeError(f"No node implementation for stages: {missing}")
+
+    g = StateGraph(PRDState)
+    for stage in STAGES:
+        g.add_node(stage.node, _NODE_FUNCS[stage.node])
+
+    g.add_edge(START, STAGES[0].node)
+    for prev, nxt in zip(STAGES, STAGES[1:]):
+        g.add_edge(prev.node, nxt.node)
+    g.add_edge(STAGES[-1].node, END)
 
     return g.compile(checkpointer=checkpointer or MemorySaver())
