@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "emulators": "firebase emulators:start --only auth,firestore --project demo-hola-gym",
+    "emulators": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,functions --project demo-hola-gym",
     "e2e": "node e2e/smoke.mjs"
   },
   "dependencies": {

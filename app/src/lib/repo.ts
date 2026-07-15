@@ -9,7 +9,8 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Cycle, Exercise, Preset, Profile, Workout } from '../types'
+import type { Cycle, Exercise, Preset, Profile, Readiness, Workout } from '../types'
+import type { Report, WeeklySummary } from './ai'
 
 // Firestore layout (single user):
 //   users/{uid}/workouts/{id}
@@ -41,6 +42,9 @@ export const repo = {
   clearCycle: (uid: string) => deleteDoc(userDoc(uid, 'meta', 'cycle')),
   saveProfile: (uid: string, p: Profile) =>
     setDoc(userDoc(uid, 'meta', 'profile'), stripUndefined(p)),
+
+  saveReadiness: (uid: string, r: Readiness) =>
+    setDoc(userDoc(uid, 'readiness', r.date), stripUndefined(r)),
 }
 
 export interface Subscriptions {
@@ -68,4 +72,13 @@ export const subscriptions: Subscriptions = {
   customExercises: (uid, cb) => colData<Exercise>(uid, 'customExercises', null, cb),
   cycle: (uid, cb) => docData<Cycle>(uid, ['meta', 'cycle'], cb),
   profile: (uid, cb) => docData<Profile>(uid, ['meta', 'profile'], cb),
+}
+
+export const aiSubscriptions = {
+  report: (uid: string, workoutId: string, cb: (r: Report | null) => void) =>
+    docData<Report>(uid, ['reports', workoutId], cb),
+  summaries: (uid: string, cb: (s: WeeklySummary[]) => void) =>
+    colData<WeeklySummary>(uid, 'summaries', 'createdAt', cb),
+  readinessToday: (uid: string, date: string, cb: (r: Readiness | null) => void) =>
+    docData<Readiness>(uid, ['readiness', date], cb),
 }

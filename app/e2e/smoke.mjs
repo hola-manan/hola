@@ -27,6 +27,14 @@ await page.getByText('Save cycle').click()
 await page.waitForSelector('text=Push day')
 console.log('OK cycle: today is Push day')
 
+// --- Daily readiness check-in (feeds AI recovery context)
+await page.waitForSelector('text=Morning check-in')
+await page.locator('button:text-is("4")').first().click() // sleep 4/5
+await page.locator('button:text-is("3")').nth(1).click() // energy 3/5
+await page.getByText('Save — the coach factors this in').click()
+await page.waitForSelector('text=Morning check-in', { state: 'detached' })
+console.log('OK readiness check-in saved')
+
 // --- Start empty workout, add exercise, log sets incl. mid-set weight change
 await page.getByText('Start empty workout').click()
 await page.waitForSelector('text=＋ Add exercise')
@@ -57,9 +65,11 @@ await page.waitForSelector('text=60×6 + 45×4')
 console.log('OK live logging: multi-segment set recorded')
 await shot(page, '03-live-workout')
 
-// --- Complete → history detail, cycle advanced to Pull
+// --- Complete → history detail, auto coach report, cycle advanced to Pull
 await page.getByText('Complete workout').click()
 await page.waitForSelector('text=total')
+await page.waitForSelector('text=/\\[mock coach\\] Report/', { timeout: 20000 })
+console.log('OK auto post-workout report generated')
 await shot(page, '04-workout-detail')
 await page.goto('http://127.0.0.1:5173/')
 await page.waitForSelector('text=Pull day')
@@ -130,6 +140,31 @@ await page.getByRole('button', { name: 'Add', exact: true }).click()
 await page.waitForSelector('div:has-text("weak shoulders") >> nth=0')
 await shot(page, '10-profile')
 console.log('OK profile saved')
+
+// --- Coach: chat grounded in history + weekly summary
+await page.goto('http://127.0.0.1:5173/coach')
+await page.getByPlaceholder('Ask anything about your training…').fill('how is my bench press?')
+await page.getByRole('button', { name: 'Send' }).click()
+await page.waitForSelector('text=/estimated 1RM on Bench Press/', { timeout: 20000 })
+console.log('OK coach chat: grounded answer with e1RM')
+await page.getByRole('button', { name: /Generate|Refresh/ }).click()
+await page.waitForSelector('text=/\\[mock coach\\] This week/', { timeout: 20000 })
+console.log('OK weekly summary generated')
+await shot(page, '11-coach')
+
+// --- AI workout creator: draft → tweak → accept → live logging
+await page.goto('http://127.0.0.1:5173/')
+await page.getByText("✨ Create today's workout (AI)").click()
+await page.waitForSelector('text=review, tweak, then start', { timeout: 25000 })
+const rationales = await page.locator('text=/e1RM|no history yet/').count()
+if (!rationales) fail('AI draft has no rationale lines')
+await shot(page, '12-ai-draft')
+await page.getByText('Start this workout').click()
+await page.waitForSelector('text=＋ Add exercise')
+console.log('OK AI creator: draft accepted into live logging')
+page.once('dialog', (d) => d.accept())
+await page.getByText('Discard').click()
+await page.waitForSelector('text=Hola Gym')
 
 // --- Offline check: service worker only in prod build; instead verify Firestore
 // offline persistence is active (no errors logged when network dropped briefly).

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
+import { ai } from '../lib/ai'
 import { advance, currentDayLabel } from '../lib/cycle'
 import { lastSession, presetFromWorkout, uuid } from '../lib/workout'
 import { formatSet } from '../lib/volume'
@@ -78,6 +79,8 @@ export function WorkoutScreen() {
     if (cycle && w.cycleDay && currentDayLabel(cycle).toLowerCase() === w.cycleDay.toLowerCase()) {
       await repo.saveCycle(uid, advance(cycle))
     }
+    // Auto post-workout report; fire-and-forget (needs connectivity, logging doesn't).
+    ai.generateReport({ workoutId: w.id }).catch(() => {})
     navigate(`/history/${w.id}`, { replace: true })
   }
 

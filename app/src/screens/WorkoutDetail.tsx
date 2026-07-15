@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { repo } from '../lib/repo'
+import { aiSubscriptions, repo } from '../lib/repo'
+import { ai, type Report } from '../lib/ai'
 import { presetFromWorkout } from '../lib/workout'
 import { formatSet, setVolume, workoutVolume, workingSetCount } from '../lib/volume'
 import { useStore, useUid } from '../store'
@@ -11,8 +13,27 @@ export function WorkoutDetail() {
   const uid = useUid()
   const navigate = useNavigate()
   const w = workouts.find((x) => x.id === id)
+  const [report, setReport] = useState<Report | null>(null)
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportError, setReportError] = useState('')
+
+  useEffect(() => {
+    if (id) return aiSubscriptions.report(uid, id, setReport)
+  }, [uid, id])
 
   if (!w) return <EmptyState>Workout not found.</EmptyState>
+
+  const generateReport = async () => {
+    setReportBusy(true)
+    setReportError('')
+    try {
+      await ai.generateReport({ workoutId: w.id })
+    } catch (e) {
+      setReportError((e as Error).message)
+    } finally {
+      setReportBusy(false)
+    }
+  }
 
   const saveAsPreset = async () => {
     const name = prompt('Preset name', w.name ?? w.cycleDay ?? 'My workout')
@@ -50,6 +71,29 @@ export function WorkoutDetail() {
         {' · '}
         {workingSetCount(w)} sets · {Math.round(workoutVolume(w)).toLocaleString()} kg total
       </div>
+
+      <Card className="mb-3">
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-dim">
+            Coach report
+          </h2>
+          {!report && (
+            <Btn variant="ghost" disabled={reportBusy} onClick={generateReport}>
+              {reportBusy ? 'Thinking…' : 'Generate'}
+            </Btn>
+          )}
+        </div>
+        {report ? (
+          <p className="text-sm leading-relaxed">{report.text}</p>
+        ) : (
+          <p className="text-xs text-ink-dim">
+            {reportBusy
+              ? 'The coach is reviewing this workout…'
+              : 'How this went vs last time, and what to do next.'}
+          </p>
+        )}
+        {reportError && <p className="mt-1 text-xs text-danger">{reportError}</p>}
+      </Card>
 
       {w.exercises.map((we, i) => {
         const ex = exercises.get(we.exerciseId)

@@ -8,10 +8,10 @@ import {
 } from 'react'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { auth } from './lib/firebase'
-import { repo, subscriptions } from './lib/repo'
-import { autoAdvanceRestDays } from './lib/cycle'
+import { aiSubscriptions, repo, subscriptions } from './lib/repo'
+import { autoAdvanceRestDays, todayStr } from './lib/cycle'
 import { EXERCISES } from './data/exercises'
-import type { Cycle, Exercise, Preset, Profile, Workout } from './types'
+import type { Cycle, Exercise, Preset, Profile, Readiness, Workout } from './types'
 
 export const DEFAULT_PROFILE: Profile = {
   goals: '',
@@ -31,6 +31,8 @@ interface Store {
   exercises: Map<string, Exercise>
   exerciseList: Exercise[]
   activeWorkout: Workout | null
+  /** Today's readiness check-in, if filled. */
+  readinessToday: Readiness | null
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -43,6 +45,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [customExercises, setCustomExercises] = useState<Exercise[]>([])
   const [cycle, setCycle] = useState<Cycle | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [readinessToday, setReadinessToday] = useState<Readiness | null>(null)
 
   useEffect(
     () =>
@@ -60,6 +63,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCustomExercises([])
       setCycle(null)
       setProfile(null)
+      setReadinessToday(null)
       return
     }
     const uid = user.uid
@@ -69,6 +73,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       subscriptions.customExercises(uid, setCustomExercises),
       subscriptions.cycle(uid, setCycle),
       subscriptions.profile(uid, setProfile),
+      aiSubscriptions.readinessToday(uid, todayStr(), setReadinessToday),
     ]
     return () => unsubs.forEach((u) => u())
   }, [user])
@@ -94,8 +99,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       exercises: new Map(exerciseList.map((e) => [e.id, e])),
       exerciseList,
       activeWorkout: workouts.find((w) => w.status === 'in_progress') ?? null,
+      readinessToday,
     }
-  }, [user, authReady, workouts, presets, customExercises, cycle, profile])
+  }, [user, authReady, workouts, presets, customExercises, cycle, profile, readinessToday])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

@@ -6,6 +6,7 @@ import { workoutVolume, workingSetCount } from '../lib/volume'
 import { useStore, useUid } from '../store'
 import { isRestDay } from '../types'
 import { Btn, Card, EmptyState, Screen } from '../components/ui'
+import { ReadinessCard } from '../components/ReadinessCard'
 
 export function Home() {
   const { cycle, presets, workouts, activeWorkout } = useStore()
@@ -30,6 +31,7 @@ export function Home() {
 
   return (
     <Screen title="Hola Gym">
+      <ReadinessCard />
       {cycle && dayLabel ? (
         <Card className="mb-4">
           <div className="text-xs uppercase tracking-wide text-ink-dim">
@@ -71,21 +73,27 @@ export function Home() {
 
       {!activeWorkout && (
         <div className="mb-4 flex flex-col gap-2">
+          {dayLabel && !isRestDay(dayLabel) && (
+            <Btn className="py-3.5 text-base" onClick={() => navigate('/create')}>
+              ✨ Create today's workout (AI)
+            </Btn>
+          )}
           {dayPresets.map((p) => (
-            <Btn key={p.id} onClick={() => start(p.id)} className="py-3.5 text-base">
+            <Btn key={p.id} variant="ghost" onClick={() => start(p.id)} className="py-3.5 text-base">
               Start {p.name}
             </Btn>
           ))}
-          <Btn
-            variant={dayPresets.length ? 'ghost' : 'primary'}
-            className="py-3.5 text-base"
-            onClick={() => start()}
-          >
+          <Btn variant="ghost" className="py-3.5 text-base" onClick={() => start()}>
             Start empty workout
           </Btn>
-          <Btn variant="ghost" onClick={() => navigate('/bulk')}>
-            Add past workout
-          </Btn>
+          <div className="flex gap-2">
+            <Btn variant="ghost" className="flex-1" onClick={() => navigate('/bulk')}>
+              Add past workout
+            </Btn>
+            <Btn variant="ghost" className="flex-1" onClick={() => navigate('/presets')}>
+              Presets
+            </Btn>
+          </div>
         </div>
       )}
 

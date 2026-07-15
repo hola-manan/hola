@@ -130,4 +130,24 @@ export interface Profile {
   unit: 'kg' | 'lb'
 }
 
+/** Daily readiness record (phase 6): manual check-in now, wearable data later. */
+export interface Readiness {
+  date: string // YYYY-MM-DD
+  sleep: number // 1-5
+  energy: number // 1-5
+  note?: string
+}
+
+/** AI workout creator output (matches the Cloud Function's draft shape). */
+export interface WorkoutDraft {
+  name: string
+  cycleDay?: string
+  exercises: {
+    exerciseId: string
+    rationale: string
+    restSeconds: number
+    sets: { weightKg: number; reps: number }[]
+  }[]
+}
+
 export const isRestDay = (label: string) => label.trim().toLowerCase() === 'rest'
