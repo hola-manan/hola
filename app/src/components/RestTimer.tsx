@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react'
 
-/** Bottom rest bar (1c): sunken strip, teal progress fill, mono countdown, SKIP. */
+/* Verbatim port of 1c's bottom rest bar: sunken strip, 4px teal fill, SKIP chip. */
 export function RestTimer({
   endsAt,
   totalSeconds,
   onDone,
-  onAdjust,
 }: {
   endsAt: number
   totalSeconds: number
   onDone: () => void
-  onAdjust: (deltaSeconds: number) => void
 }) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
@@ -29,35 +27,47 @@ export function RestTimer({
   const ss = `${remaining % 60}`.padStart(2, '0')
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-lg border-t border-white/8 bg-sunken pb-[max(0.9rem,env(safe-area-inset-bottom))]">
-      <div className="h-[3px] w-full bg-chip">
-        <div className="h-full bg-teal transition-[width] duration-300" style={{ width: `${pct}%` }} />
+    <div
+      className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-lg"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        background: '#101318',
+        borderTop: '1px solid rgba(255,255,255,.08)',
+        padding: '10px 16px 30px',
+      }}
+    >
+      <div style={{ flex: 1 }}>
+        <div style={{ height: 4, background: '#1b1f26', borderRadius: 2 }}>
+          <div
+            style={{
+              width: `${pct}%`,
+              height: 4,
+              background: '#57c4cc',
+              borderRadius: 2,
+              transition: 'width .3s linear',
+            }}
+          />
+        </div>
+        <div style={{ fontSize: 10, color: '#5a6270', marginTop: 4 }}>
+          Rest · {mm}:{ss} left
+        </div>
       </div>
-      <div className="flex items-center justify-between px-5 pt-2.5">
-        <span className="font-mono text-[13px] text-body">
-          Rest · <span className="text-teal">{mm}:{ss}</span> left
-        </span>
-        <span className="flex items-center gap-2">
-          <button
-            className="rounded-[7px] border border-white/12 px-2.5 py-1 font-mono text-[11px] text-muted active:opacity-70"
-            onClick={() => onAdjust(-15)}
-          >
-            −15s
-          </button>
-          <button
-            className="rounded-[7px] border border-white/12 px-2.5 py-1 font-mono text-[11px] text-muted active:opacity-70"
-            onClick={() => onAdjust(15)}
-          >
-            +15s
-          </button>
-          <button
-            className="rounded-[7px] border border-teal/40 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.08em] text-teal active:opacity-70"
-            onClick={onDone}
-          >
-            Skip
-          </button>
-        </span>
-      </div>
+      <button
+        onClick={onDone}
+        style={{
+          fontFamily: "'IBM Plex Mono',monospace",
+          fontSize: 12,
+          color: '#57c4cc',
+          border: '1px solid rgba(87,196,204,.35)',
+          borderRadius: 7,
+          padding: '5px 10px',
+          background: 'none',
+        }}
+      >
+        SKIP
+      </button>
     </div>
   )
 }

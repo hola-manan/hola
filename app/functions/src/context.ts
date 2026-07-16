@@ -22,25 +22,33 @@ export interface UserData {
   readiness: Readiness | null
   /** Completed workouts, newest first. */
   workouts: Workout[]
+  /** Custom user exercises. */
+  customExercises: CatalogEntry[]
 }
 
-const exerciseName = (id: string) => CATALOG_BY_ID.get(id)?.name ?? id
+const buildUserCatalog = (custom: CatalogEntry[]) => {
+  const map = new Map<string, CatalogEntry>(CATALOG_BY_ID)
+  for (const c of custom) map.set(c.id, c)
+  return map
+}
 
-export function describeWorkout(w: Workout): string {
+const exerciseName = (id: string, catalog: Map<string, CatalogEntry>) => catalog.get(id)?.name ?? id
+
+export function describeWorkout(w: Workout, catalog: Map<string, CatalogEntry>): string {
   const date = new Date(w.startedAt).toISOString().slice(0, 10)
   const lines = w.exercises
-    .map((we) => `  ${exerciseName(we.exerciseId)}: ${we.sets.map(formatSet).join(', ') || '(no sets)'}`)
+    .map((we) => `  ${exerciseName(we.exerciseId, catalog)}: ${we.sets.map(formatSet).join(', ') || '(no sets)'}`)
     .join('\n')
   return `${date}${w.cycleDay ? ` [${w.cycleDay} day]` : ''}${w.name ? ` "${w.name}"` : ''}\n${lines}`
 }
 
 /** Recent workouts in detail; older ones as weekly per-muscle set counts. */
-export function summarizeHistory(workouts: Workout[], detailedCount = 8): string {
+export function summarizeHistory(workouts: Workout[], catalog: Map<string, CatalogEntry>, detailedCount = 8): string {
   if (!workouts.length) return 'No workouts logged yet.'
   const detailed = workouts.slice(0, detailedCount)
   const older = workouts.slice(detailedCount)
   let out = `RECENT WORKOUTS (newest first, weights in kg, sets as weight×reps, '+' = mid-set weight change):\n`
-  out += detailed.map(describeWorkout).join('\n')
+  out += detailed.map((w) => describeWorkout(w, catalog)).join('\n')
   if (older.length) {
     const byWeek = new Map<string, Workout[]>()
     for (const w of older) {
@@ -50,7 +58,7 @@ export function summarizeHistory(workouts: Workout[], detailedCount = 8): string
     }
     out += `\n\nOLDER HISTORY (working sets per muscle group, per week):\n`
     for (const [week, ws] of [...byWeek.entries()].sort().reverse()) {
-      const counts = muscleSetCounts(ws, CATALOG_BY_ID)
+      const counts = muscleSetCounts(ws, catalog)
       const row = [...counts.entries()]
         .sort((a, b) => b[1] - a[1])
         .map(([m, n]) => `${m} ${n}`)
@@ -100,16 +108,17 @@ export function describeReadiness(r: Readiness | null): string {
   }.`
 }
 
-export function describeE1RMs(workouts: Workout[]): string {
+export function describeE1RMs(workouts: Workout[], catalog: Map<string, CatalogEntry>): string {
   const table = e1rmTable(workouts)
   if (!table.size) return 'No estimated 1RMs yet.'
   const rows = [...table.entries()]
-    .map(([id, rm]) => `  ${exerciseName(id)}: ${rm.toFixed(1)} kg`)
+    .map(([id, rm]) => `  ${exerciseName(id, catalog)}: ${rm.toFixed(1)} kg`)
     .join('\n')
   return `CURRENT ESTIMATED 1RMs (Epley):\n${rows}`
 }
 
 export function buildContext(data: UserData): string {
+  const catalog = buildUserCatalog(data.customExercises)
   return [
     '=== USER PROFILE ===',
     describeProfile(data.profile),
@@ -121,9 +130,9 @@ export function buildContext(data: UserData): string {
     describeReadiness(data.readiness),
     '',
     '=== STRENGTH ===',
-    describeE1RMs(data.workouts),
+    describeE1RMs(data.workouts, catalog),
     '',
     '=== HISTORY ===',
-    summarizeHistory(data.workouts),
+    summarizeHistory(data.workouts, catalog),
   ].join('\n')
 }

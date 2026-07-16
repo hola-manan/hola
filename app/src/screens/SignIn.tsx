@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import { devSignIn, signInWithGoogle, usingEmulators } from '../lib/firebase'
 
+const MONO = "'IBM Plex Mono',monospace"
+const SANS = "'IBM Plex Sans',system-ui,sans-serif"
+const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
+
 export function SignIn() {
   const [error, setError] = useState('')
   const run = (fn: () => Promise<unknown>) => () =>
     fn().catch((e: Error) => setError(e.message))
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-6 px-8 text-ink">
-      <div className="text-center">
-        <svg viewBox="0 0 64 64" className="mx-auto h-14 w-14">
+    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, boxSizing: 'border-box' }}>
+      <div style={{ textAlign: 'center' }}>
+        <svg viewBox="0 0 64 64" style={{ height: 56, width: 56, margin: '0 auto' }}>
           <g fill="#c8f04b">
             <rect x="10" y="22" width="8" height="20" rx="2" />
             <rect x="46" y="22" width="8" height="20" rx="2" />
@@ -18,26 +22,31 @@ export function SignIn() {
           </g>
           <rect x="23" y="29" width="18" height="6" rx="2" fill="#57c4cc" />
         </svg>
-        <h1 className="mt-4 font-condensed text-[38px] font-bold leading-none">Hola Gym</h1>
-        <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-label">
+        <div style={{ marginTop: 16, fontFamily: CONDENSED, fontSize: 38, fontWeight: 700, lineHeight: 1 }}>Hola Gym</div>
+        <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.14em', color: '#5a6270' }}>
           Personal gym tracking · insights
-        </p>
+        </div>
       </div>
-      <button
-        onClick={run(signInWithGoogle)}
-        className="w-full rounded-[10px] bg-lime py-3 font-semibold text-on-lime active:opacity-70"
-      >
-        Continue with Google
-      </button>
-      {usingEmulators && (
+      
+      <div style={{ width: '100%', maxWidth: 300, marginTop: 40, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button
-          onClick={run(devSignIn)}
-          className="w-full rounded-[10px] border border-white/14 py-3 text-ink active:opacity-70"
+          onClick={run(signInWithGoogle)}
+          style={{ width: '100%', background: '#c8f04b', color: '#0b0d10', borderRadius: 10, padding: '14px 16px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer' }}
         >
-          Dev sign-in (emulator)
+          Continue with Google
         </button>
-      )}
-      {error && <p className="text-sm text-danger">{error}</p>}
+        
+        {usingEmulators && (
+          <button
+            onClick={run(devSignIn)}
+            style={{ width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,.14)', color: '#e9ecef', borderRadius: 10, padding: '14px 16px', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}
+          >
+            Dev sign-in (emulator)
+          </button>
+        )}
+        
+        {error && <div style={{ fontSize: 13, color: '#e0596b', textAlign: 'center', marginTop: 8 }}>{error}</div>}
+      </div>
     </div>
   )
 }

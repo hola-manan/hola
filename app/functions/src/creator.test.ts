@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { generateDraft, musclesForDay, validateDraft } from './creator'
-import { buildContext, summarizeHistory } from './context'
+import { buildContext, CATALOG_BY_ID, summarizeHistory } from './context'
 import type { UserData } from './context'
 import type { Workout } from './domain'
 
@@ -22,6 +22,7 @@ const data = (overrides: Partial<UserData> = {}): UserData => ({
   cycle: { days: ['Push', 'Pull', 'Legs', 'Rest'], pointer: 0, pointerDate: '2026-07-15' },
   readiness: { date: '2026-07-15', sleep: 4, energy: 4 },
   workouts: [bench(60, 8)],
+  customExercises: [],
   ...overrides,
 })
 
@@ -120,7 +121,7 @@ describe('context', () => {
       id: `w${i}`,
       startedAt: Date.parse('2026-07-10T12:00:00Z') - i * 3 * 86_400_000,
     }))
-    const text = summarizeHistory(workouts, 8)
+    const text = summarizeHistory(workouts, CATALOG_BY_ID, 8)
     expect(text).toContain('RECENT WORKOUTS')
     expect(text).toContain('OLDER HISTORY')
     expect(text).toContain('chest')

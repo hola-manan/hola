@@ -86,6 +86,61 @@ export function volumeVsTargets(
   return rows.sort((a, b) => b.target - a.target)
 }
 
+/** Coarse display groups used by Home's volume bars (mock shows Back/Chest/…). */
+const DISPLAY_GROUPS: [string, MuscleGroup[]][] = [
+  ['Back', ['lats', 'upper back', 'traps', 'lower back']],
+  ['Chest', ['chest']],
+  ['Shoulders', ['front delts', 'side delts', 'rear delts']],
+  ['Arms', ['biceps', 'triceps', 'forearms']],
+  ['Legs', ['quads', 'hamstrings', 'glutes', 'calves']],
+  ['Core', ['abs', 'obliques']],
+]
+
+export interface GroupVolumeRow {
+  label: string
+  done: number
+  target: number
+  pct: number
+  behind: boolean
+}
+
+/** volumeVsTargets aggregated into the design's coarse groups. */
+export function groupedVolumeRows(
+  cycle: Cycle,
+  workouts: Workout[],
+  exercises: Map<string, Exercise>,
+  sinceMs: number,
+): GroupVolumeRow[] {
+  const rows = volumeVsTargets(cycle, workouts, exercises, sinceMs)
+  const out: GroupVolumeRow[] = []
+  for (const [label, members] of DISPLAY_GROUPS) {
+    const mine = rows.filter((r) => members.includes(r.muscle))
+    if (!mine.length) continue
+    const done = mine.reduce((s, r) => s + r.done, 0)
+    const target = mine.reduce((s, r) => s + r.target, 0)
+    if (target <= 0) continue
+    const pct = Math.round((done / target) * 100)
+    out.push({ label, done, target, pct, behind: pct < 75 })
+  }
+  return out
+}
+
+/** Compact cycle name like "PPL·UL": initials of day blocks split by rest days. */
+export function cycleShortName(cycle: Cycle): string {
+  const blocks: string[] = []
+  let current = ''
+  for (const d of cycle.days) {
+    if (isRestDay(d)) {
+      if (current) blocks.push(current)
+      current = ''
+    } else {
+      current += d.trim()[0]?.toUpperCase() ?? ''
+    }
+  }
+  if (current) blocks.push(current)
+  return blocks.join('·')
+}
+
 /** Start of the current Monday-based training week, ms. */
 export function weekStartMs(now = new Date()): number {
   const d = new Date(now)

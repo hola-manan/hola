@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ai, type ChatMessage } from '../lib/ai'
 import { useStore } from '../store'
-import { Eyebrow } from '../components/ui'
 
 const SUGGESTED = [
   'Why is my bench stalling?',
   'Am I neglecting any muscles?',
   'What should I focus on this month?',
 ]
+
+const MONO = "'IBM Plex Mono',monospace"
+const SANS = "'IBM Plex Sans',system-ui,sans-serif"
 
 export function Coach() {
   const { workouts } = useStore()
@@ -45,65 +47,79 @@ export function Coach() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col px-5 pb-32 pt-8">
-      <div className="flex items-end justify-between">
-        <h1 className="font-condensed text-[32px] font-bold leading-none">Coach</h1>
-        <Link to="/summary" className="font-mono text-[11px] uppercase tracking-[0.08em] text-teal">
-          Weekly summary →
-        </Link>
+    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontWeight: 600, fontSize: 15 }}>Coach</span>
+        <span style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
+          <span style={{ fontFamily: MONO, fontSize: 10, color: '#5a6270', letterSpacing: '.12em' }}>GROUNDED IN {completedCount} WORKOUTS</span>
+          <Link to="/summary" style={{ fontFamily: MONO, fontSize: 10, color: '#57c4cc', letterSpacing: '.12em' }}>
+            WEEKLY →
+          </Link>
+        </span>
       </div>
-      <Eyebrow className="mt-1.5">GROUNDED IN {completedCount} WORKOUTS</Eyebrow>
-
-      <div className="mt-5 flex flex-1 flex-col gap-2">
+      
+      <div style={{ flex: 1, overflow: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
             {SUGGESTED.map((q) => (
               <button
                 key={q}
-                className="rounded-full border border-white/10 bg-card px-3 py-1.5 text-[12px] text-muted active:opacity-70"
                 onClick={() => send(q)}
+                style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', background: '#14171c', padding: '6px 12px', fontSize: 12, color: '#8b93a0', cursor: 'pointer' }}
               >
                 {q}
               </button>
             ))}
           </div>
         )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`max-w-[85%] px-3.5 py-2.5 text-[13px] leading-relaxed ${
-              m.role === 'user'
-                ? 'self-end rounded-[12px_12px_3px_12px] bg-lime text-on-lime'
-                : 'self-start rounded-[12px_12px_12px_3px] border border-white/8 bg-card text-body'
-            }`}
-          >
-            {m.text}
-          </div>
-        ))}
+
+        {messages.map((m, i) => {
+          const isUser = m.role === 'user'
+          return (
+            <div
+              key={i}
+              style={{
+                alignSelf: isUser ? 'flex-end' : 'flex-start',
+                maxWidth: isUser ? '75%' : '88%',
+                background: isUser ? '#c8f04b' : '#14171c',
+                color: isUser ? '#0b0d10' : '#c7ccd4',
+                border: isUser ? 'none' : '1px solid rgba(255,255,255,.08)',
+                borderRadius: isUser ? '12px 12px 3px 12px' : '12px 12px 12px 3px',
+                padding: '11px 13px',
+                fontSize: 13.5,
+                lineHeight: 1.55,
+                whiteSpace: 'pre-wrap'
+              }}
+            >
+              {m.text}
+            </div>
+          )
+        })}
+
         {busy && (
-          <div className="self-start rounded-[12px_12px_12px_3px] border border-white/8 bg-card px-3.5 py-2.5 font-mono text-[13px] text-label">
+          <div style={{ alignSelf: 'flex-start', maxWidth: '88%', background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: '12px 12px 12px 3px', padding: '11px 13px', fontSize: 13.5, color: '#5a6270' }}>
             …
           </div>
         )}
+        
+        {error && <div style={{ fontSize: 12, color: '#e0596b', textAlign: 'center', marginTop: 8 }}>{error}</div>}
+        
         <div ref={endRef} />
       </div>
 
-      {error && <p className="mt-2 text-[12px] text-danger">{error}</p>}
-
-      <div className="fixed inset-x-0 bottom-14 z-10 mx-auto max-w-lg border-t border-white/8 bg-sunken px-4 pb-3 pt-2.5">
-        <div className="flex items-center gap-2">
+      <div style={{ padding: '10px 16px 8px', borderTop: '1px solid rgba(255,255,255,.08)', background: '#101318' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#14171c', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, padding: '2px 12px' }}>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
             placeholder="Ask about your training…"
-            className="h-10 flex-1 rounded-[9px] border border-white/10 bg-card px-3 text-[13px] outline-none placeholder:text-label focus:border-lime/40"
+            style={{ flex: 1, height: 40, background: 'transparent', border: 'none', color: '#e9ecef', fontSize: 13, outline: 'none' }}
           />
           <button
             onClick={() => send()}
             disabled={!input.trim() || busy}
-            aria-label="send"
-            className="grid h-10 w-10 place-items-center rounded-[9px] bg-lime text-on-lime disabled:opacity-40"
+            style={{ color: (!input.trim() || busy) ? '#5a6270' : '#c8f04b', fontSize: 18, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
           >
             ↥
           </button>

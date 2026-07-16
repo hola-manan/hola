@@ -26,3 +26,4 @@ e2e/shots
 .firebase
 .env.local
 functions/lib
+public/strong.csv

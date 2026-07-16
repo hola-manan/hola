@@ -2,13 +2,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
 import { currentDayLabel, missedDays, shiftToToday, skipDay } from '../lib/cycle'
 import { emptyWorkout, workoutFromPreset } from '../lib/workout'
-import { volumeVsTargets, weekStartMs } from '../lib/targets'
+import { cycleShortName, groupedVolumeRows, weekStartMs } from '../lib/targets'
 import { useStore, useUid } from '../store'
 import { isRestDay, type Cycle } from '../types'
-import { Btn, Card, Eyebrow, ProgressRow, SunkenCard } from '../components/ui'
 import { ReadinessCard } from '../components/ReadinessCard'
 
-/** 3-letter mono codes for the cycle strip, per the design (PSH · PLL · LEG …). */
+/* Verbatim port of design-refs/1a.html — inline px values are the spec. */
+
+const MONO = "'IBM Plex Mono',monospace"
+const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
+
 const DAY_CODES: Record<string, string> = {
   push: 'PSH',
   pull: 'PLL',
@@ -38,17 +41,15 @@ export function Home() {
 
   const dayLabel = cycle ? currentDayLabel(cycle) : null
   const missed = cycle ? missedDays(cycle) : 0
-  const dayPresets = dayLabel
-    ? presets.filter((p) => p.cycleDay?.toLowerCase() === dayLabel.toLowerCase())
-    : []
+  const dayPreset = dayLabel
+    ? presets.find((p) => p.cycleDay?.toLowerCase() === dayLabel.toLowerCase())
+    : undefined
   const completed = workouts.filter((w) => w.status === 'completed')
   const lastSameDay = dayLabel
     ? completed.find((w) => w.cycleDay?.toLowerCase() === dayLabel.toLowerCase())
     : undefined
   const latestBw = profile.bodyweight[profile.bodyweight.length - 1]
-  const volumeRows = cycle
-    ? volumeVsTargets(cycle, completed, exercises, weekStartMs()).slice(0, 5)
-    : []
+  const volumeRows = cycle ? groupedVolumeRows(cycle, completed, exercises, weekStartMs()) : []
 
   const start = async (presetId?: string) => {
     const preset = presets.find((p) => p.id === presetId)
@@ -59,59 +60,79 @@ export function Home() {
     navigate('/workout')
   }
 
-  const today = new Date()
-  const eyebrowDate = today
-    .toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-    .toUpperCase()
+  const now = new Date()
+  const eyebrowDate = `${now.toLocaleDateString(undefined, { weekday: 'short' })} ${now.getDate()} ${now.toLocaleDateString(undefined, { month: 'short' })}`.toUpperCase()
 
   return (
-    <div className="px-5 pt-8">
-      {/* eyebrow row: date · cycle codes | bodyweight + profile */}
-      <div className="flex items-center justify-between">
-        <Eyebrow>
+    <div style={{ padding: '72px 20px 0' }}>
+      {/* eyebrow row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '.14em', color: '#5a6270', whiteSpace: 'nowrap' }}>
           {eyebrowDate}
-          {cycle && ` · CYCLE ${cycle.days.map(codeFor).filter((c, i, a) => a.indexOf(c) === i).join('·')}`}
-        </Eyebrow>
-        <Link to="/profile" className="flex items-center gap-2" aria-label="profile">
-          {latestBw && (
-            <span className="font-mono text-[10px] tracking-[0.12em] text-label">
-              {latestBw.weightKg} KG
-            </span>
-          )}
-          <svg viewBox="0 0 20 20" className="h-4 w-4 text-label" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="10" cy="6.5" r="3.2" />
-            <path d="M3.5 17 C4.5 13.5 7 12 10 12 C13 12 15.5 13.5 16.5 17" />
-          </svg>
+          {cycle && ` · CYCLE ${cycleShortName(cycle)}`}
+        </span>
+        <Link
+          to="/profile"
+          aria-label="profile"
+          style={{ fontFamily: MONO, fontSize: 11, color: '#5a6270', whiteSpace: 'nowrap' }}
+        >
+          {latestBw ? `${latestBw.weightKg} KG` : '◉'}
         </Link>
       </div>
 
       {cycle && dayLabel ? (
         <>
-          <h1 className="mt-3 font-condensed text-[46px] font-bold leading-none">
+          <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 46, lineHeight: 1.02, marginTop: 10 }}>
             {isRestDay(dayLabel) ? 'Rest Day' : `${dayLabel} Day`}
-          </h1>
-          <p className="mt-1.5 text-[13px] text-muted">
+          </div>
+          <div style={{ fontSize: 13, color: '#8b93a0', marginTop: 4 }}>
             Day {(cycle.pointer % cycle.days.length) + 1} of {cycle.days.length}
             {lastSameDay &&
               ` · last ${dayLabel} was ${new Date(lastSameDay.startedAt).toLocaleDateString(undefined, { weekday: 'short' })}, ${Math.max(1, Math.round((Date.now() - lastSameDay.startedAt) / 86_400_000))} days ago`}
-          </p>
+          </div>
 
           {/* cycle strip — tap to edit */}
-          <Link to="/cycle" className="mt-4 flex gap-1">
+          <Link to="/cycle" style={{ display: 'flex', gap: 5, marginTop: 16 }}>
             {cycle.days.map((d, i) => {
               const isToday = i === cycle.pointer % cycle.days.length
               const done = i < cycle.pointer % cycle.days.length
               return (
                 <span
                   key={i}
-                  className={`flex flex-1 flex-col items-center gap-0.5 rounded-md py-1.5 font-mono text-[10px] ${
-                    isToday
-                      ? 'bg-lime font-semibold text-on-lime'
-                      : 'border border-white/8 bg-card'
-                  } ${!isToday && (done ? 'text-pos' : isRestDay(d) ? 'text-faint' : 'text-label')}`}
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    padding: '7px 0',
+                    borderRadius: 7,
+                    background: isToday ? '#c8f04b' : '#14171c',
+                    border: isToday ? 'none' : '1px solid rgba(255,255,255,.07)',
+                  }}
                 >
-                  {codeFor(d)}
-                  <span className={`text-[8px] tracking-[0.1em] ${isToday ? 'text-on-lime/70' : 'text-faint'}`}>
+                  <span
+                    style={{
+                      display: 'block',
+                      fontFamily: MONO,
+                      fontSize: 10,
+                      fontWeight: isToday ? 600 : undefined,
+                      color: isToday
+                        ? '#0b0d10'
+                        : done
+                          ? '#63d08a'
+                          : isRestDay(d)
+                            ? '#5a6270'
+                            : '#8b93a0',
+                    }}
+                  >
+                    {codeFor(d)}
+                  </span>
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 9,
+                      color: isToday ? 'rgba(11,13,16,.6)' : '#3d434c',
+                      marginTop: 2,
+                    }}
+                  >
                     {isToday
                       ? 'TODAY'
                       : done
@@ -124,97 +145,184 @@ export function Home() {
           </Link>
         </>
       ) : (
-        <Card className="mt-4">
-          <p className="text-[13px] text-muted">
+        <div style={{ background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: 14, marginTop: 16 }}>
+          <p style={{ fontSize: 13, color: '#8b93a0', margin: 0, lineHeight: 1.4 }}>
             No training cycle yet. Define your split (e.g. Push / Pull / Legs / Rest) and the app
             will tell you what today is.
           </p>
-          <Btn className="mt-3" onClick={() => navigate('/cycle')}>
+          <button
+            onClick={() => navigate('/cycle')}
+            style={{
+              marginTop: 12,
+              width: '100%',
+              background: '#20242c',
+              color: '#e9ecef',
+              borderRadius: 8,
+              padding: '10px 0',
+              border: 'none',
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
             Set up cycle
-          </Btn>
-        </Card>
+          </button>
+        </div>
       )}
 
-      <div className="mt-4">
+      {/* readiness (check-in or filled stats, 1a card geometry inside) */}
+      <div style={{ marginTop: 14 }}>
         <ReadinessCard />
       </div>
 
       {cycle && dayLabel && missed > 1 && !isRestDay(dayLabel) && (
-        <Card className="mt-3">
-          <Eyebrow className="mb-1.5">MISSED A DAY?</Eyebrow>
-          <p className="mb-2.5 text-[13px] text-body">
-            {dayLabel} has been waiting {missed} days.
-          </p>
-          <div className="flex gap-2">
-            <Btn className="flex-1" onClick={() => repo.saveCycle(uid, shiftToToday(cycle))}>
+        <div
+          style={{
+            marginTop: 14,
+            padding: '12px 14px',
+            background: '#14171c',
+            border: '1px solid rgba(255,255,255,.08)',
+            borderRadius: 10,
+          }}
+        >
+          <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270' }}>
+            MISSED A DAY? · {dayLabel.toUpperCase()} WAITING {missed} DAYS
+          </span>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button
+              onClick={() => repo.saveCycle(uid, shiftToToday(cycle))}
+              style={{ flex: 1, padding: '9px 0', background: '#c8f04b', color: '#0b0d10', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+            >
               Shift — do it today
-            </Btn>
-            <Btn variant="ghost" className="flex-1" onClick={() => repo.saveCycle(uid, skipDay(cycle))}>
+            </button>
+            <button
+              onClick={() => repo.saveCycle(uid, skipDay(cycle))}
+              style={{ flex: 1, padding: '9px 0', background: 'none', color: '#e9ecef', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, fontSize: 12 }}
+            >
               Skip — move on
-            </Btn>
+            </button>
           </div>
-        </Card>
+        </div>
       )}
 
+      {/* action stack */}
       {!activeWorkout && (
-        <div className="mt-4 flex flex-col gap-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
           {dayLabel && !isRestDay(dayLabel) && (
             <button
               onClick={() => navigate('/create')}
-              className="flex items-center justify-between rounded-xl bg-lime p-4 text-left active:opacity-80"
+              style={{
+                background: '#c8f04b',
+                color: '#0b0d10',
+                borderRadius: 10,
+                padding: '14px 16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                border: 'none',
+                textAlign: 'left',
+              }}
             >
               <span>
-                <span className="block text-[15px] font-semibold text-on-lime">
-                  ✦ Create today's workout
+                <span style={{ display: 'block', fontWeight: 600, fontSize: 15 }}>
+                  Create today's workout
                 </span>
-                <span className="mt-0.5 block text-[11.5px] text-on-lime/70">
+                <span style={{ display: 'block', fontSize: 11, opacity: 0.65 }}>
                   AI draft · review before starting
                 </span>
               </span>
-              <span className="text-on-lime">→</span>
+              <span style={{ fontFamily: MONO, fontSize: 16 }}>✦</span>
             </button>
           )}
-          <div className="flex gap-2">
-            {dayPresets.slice(0, 1).map((p) => (
-              <Btn key={p.id} variant="ghost" className="flex-1 py-3" onClick={() => start(p.id)}>
-                Preset · {p.name}
-              </Btn>
-            ))}
-            <Btn variant="ghost" className="flex-1 py-3" onClick={() => start()}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {dayPreset && (
+              <button
+                onClick={() => start(dayPreset.id)}
+                style={{
+                  flex: 1,
+                  border: '1px solid rgba(255,255,255,.14)',
+                  borderRadius: 10,
+                  padding: '11px 14px',
+                  fontSize: 13,
+                  color: '#e9ecef',
+                  background: 'none',
+                  textAlign: 'left',
+                }}
+              >
+                Preset · <span style={{ color: '#8b93a0' }}>{dayPreset.name}</span>
+              </button>
+            )}
+            <button
+              onClick={() => start()}
+              style={{
+                flex: 1,
+                border: '1px solid rgba(255,255,255,.14)',
+                borderRadius: 10,
+                padding: '11px 14px',
+                fontSize: 13,
+                color: '#e9ecef',
+                background: 'none',
+                textAlign: 'left',
+              }}
+            >
               Empty workout
-            </Btn>
+            </button>
           </div>
-          <div className="flex justify-between px-1">
-            <button className="text-[12px] text-muted underline-offset-4 active:underline" onClick={() => navigate('/bulk')}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 2px 0' }}>
+            <button
+              onClick={() => navigate('/bulk')}
+              style={{ fontSize: 11.5, color: '#5a6270', background: 'none', border: 'none', padding: 0 }}
+            >
               ＋ Add past workout (bulk entry)
             </button>
-            <button className="text-[12px] text-muted underline-offset-4 active:underline" onClick={() => navigate('/presets')}>
+            <button
+              onClick={() => navigate('/presets')}
+              style={{ fontSize: 11.5, color: '#5a6270', background: 'none', border: 'none', padding: 0 }}
+            >
               Presets →
             </button>
           </div>
         </div>
       )}
 
-      {activeWorkout && (
-        <SunkenCard className="mt-4">
-          <p className="text-[13px] text-body">Workout in progress — resume from the bar below.</p>
-        </SunkenCard>
-      )}
-
+      {/* volume vs cycle target */}
       {volumeRows.length > 0 && (
-        <div className="mt-6">
-          <Eyebrow className="mb-1">VOLUME VS CYCLE TARGET · SETS/WK</Eyebrow>
-          {volumeRows.map((r) => (
-            <ProgressRow
-              key={r.muscle}
-              label={r.muscle}
-              value={`${r.pct}%`}
-              pct={r.pct}
-              behind={r.behind}
-            />
-          ))}
+        <div style={{ marginTop: 16, paddingBottom: 16 }}>
+          <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270' }}>
+             THIS WEEK · VOLUME VS CYCLE TARGET
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 9 }}>
+            {volumeRows.map((r) => (
+              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 64, fontSize: 11, color: r.behind ? '#e8b44c' : '#8b93a0' }}>
+                  {r.label}
+                </span>
+                <div style={{ flex: 1, height: 5, background: '#1b1f26', borderRadius: 3 }}>
+                  <div
+                    style={{
+                      width: `${Math.min(100, r.pct)}%`,
+                      height: 5,
+                      background: r.behind ? '#e8b44c' : '#57c4cc',
+                      borderRadius: 3,
+                    }}
+                  />
+                </div>
+                <span
+                  style={{
+                    width: 34,
+                    textAlign: 'right',
+                    fontFamily: MONO,
+                    fontSize: 10.5,
+                    color: r.behind ? '#e8b44c' : '#8b93a0',
+                  }}
+                >
+                  {r.pct}%
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
+

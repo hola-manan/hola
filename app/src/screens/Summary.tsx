@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { ai, type WeeklySummary } from '../lib/ai'
 import { aiSubscriptions } from '../lib/repo'
 import { e1rmDelta } from '../lib/rm'
-import { volumeVsTargets, weekStartMs } from '../lib/targets'
+import { groupedVolumeRows, weekStartMs } from '../lib/targets'
 import { workoutVolume } from '../lib/volume'
 import { isRestDay } from '../types'
 import { useStore, useUid } from '../store'
-import { AccentCallout, Btn, DeltaChip, EmptyState, Eyebrow, ProgressRow, StatStrip } from '../components/ui'
+import { EmptyState } from '../components/ui'
+
+/* Verbatim port of design-refs/3a.html — inline px values are the spec. */
+
+const MONO = "'IBM Plex Mono',monospace"
+const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
+const SANS = "'IBM Plex Sans',system-ui,sans-serif"
 
 function isoWeek(d: Date): number {
   const u = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
@@ -41,10 +47,9 @@ export function Summary() {
     ? Math.round((cycle.days.filter((d) => !isRestDay(d)).length * 7) / cycle.days.length)
     : null
 
-  const rows = cycle ? volumeVsTargets(cycle, completed, exercises, weekStart) : []
+  const rows = cycle ? groupedVolumeRows(cycle, completed, exercises, weekStart) : []
   const flagged = rows.filter((r) => r.behind)
 
-  /** e1RM movement chips for the exercises trained this week. */
   const deltaChips = useMemo(() => {
     const ids = [...new Set(thisWeek.flatMap((w) => w.exercises.map((e) => e.exerciseId)))]
     return ids
@@ -73,100 +78,124 @@ export function Summary() {
     return <EmptyState>Log some workouts first — then the weekly summary has something to say.</EmptyState>
   }
 
+  const formatDateRange = () => {
+    const startStr = new Date(weekStart).getDate()
+    const endStr = `${weekEnd.getDate()} ${weekEnd.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}`
+    return `${startStr}–${endStr}`
+  }
+
   return (
-    <div className="px-5 pb-8 pt-8">
-      <Eyebrow>
-        WEEKLY SUMMARY · WK {isoWeek(now)} · {new Date(weekStart).getDate()}–{weekEnd.getDate()}{' '}
-        {weekEnd.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}
-      </Eyebrow>
-      <h1 className="mt-2 font-condensed text-[34px] font-bold leading-[1.05]">
+    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 20px 30px' }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.14em', color: '#5a6270' }}>
+        WEEKLY SUMMARY · WK {isoWeek(now)} · {formatDateRange()}
+      </div>
+      <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 34, lineHeight: 1.05, marginTop: 8 }}>
         {flagged.length
-          ? `On target, except ${flagged[0].muscle}`
+          ? <>On target,<br />except {flagged[0].label.toLowerCase()}</>
           : thisWeek.length
             ? 'On target this week'
             : 'Nothing logged yet this week'}
-      </h1>
-
-      <StatStrip
-        className="mt-4"
-        stats={[
-          {
-            value: trainingDays ? `${thisWeek.length}/${trainingDays}` : String(thisWeek.length),
-            label: 'adherence',
-          },
-          { value: Math.round(vol).toLocaleString(), label: 'kg volume' },
-          {
-            value: volDelta === null ? '—' : `${volDelta >= 0 ? '+' : ''}${volDelta.toFixed(1)}%`,
-            label: 'vs last wk',
-            tone: volDelta !== null && volDelta >= 0 ? 'pos' : 'ink',
-          },
-        ]}
-      />
-
-      {rows.length > 0 && (
-        <div className="mt-4 rounded-[11px] border border-white/8 bg-card p-3.5">
-          <Eyebrow className="mb-1">VOLUME VS CYCLE INTENT · SETS/WK</Eyebrow>
-          {rows.map((r) => (
-            <ProgressRow
-              key={r.muscle}
-              label={r.muscle}
-              value={`${r.done}/${r.target}`}
-              pct={r.pct * 0.85}
-              behind={r.behind}
-              tickPct={85}
-            />
-          ))}
-          <p className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint">
-            │ = cycle target · warm-ups excluded
-          </p>
+      </div>
+      <div style={{ display: 'flex', gap: 14, marginTop: 12, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: MONO, fontSize: 15 }}>{trainingDays ? `${thisWeek.length}/${trainingDays}` : String(thisWeek.length)}</div>
+          <div style={{ fontSize: 9.5, color: '#5a6270', marginTop: 1 }}>ADHERENCE</div>
         </div>
-      )}
-
-      <div className="mt-3">
-        {latest ? (
-          <AccentCallout tone="warn" label={`COACH · ${latest.week.toUpperCase()}`}>
-            <p className="text-[13px] leading-relaxed text-body">{latest.text}</p>
-            <div className="mt-3 flex gap-2">
-              <Btn className="px-3 py-2 text-[12.5px]" onClick={() => navigate('/create')}>
-                Fix in next draft
-              </Btn>
-              <Btn variant="ghost" className="px-3 py-2 text-[12.5px]" onClick={() => navigate('/coach')}>
-                Ask coach
-              </Btn>
-              <Btn variant="ghost" className="ml-auto px-3 py-2 text-[12.5px]" disabled={busy} onClick={refresh}>
-                {busy ? '…' : '⟳'}
-              </Btn>
-            </div>
-          </AccentCallout>
-        ) : (
-          <Btn variant="ghost" className="w-full py-3" disabled={busy} onClick={refresh}>
-            {busy ? 'Thinking…' : 'Generate coach summary'}
-          </Btn>
-        )}
-        {error && <p className="mt-2 text-[12px] text-danger">{error}</p>}
+        <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,.07)', paddingLeft: 12 }}>
+          <div style={{ fontFamily: MONO, fontSize: 15 }}>{Math.round(vol).toLocaleString()}</div>
+          <div style={{ fontSize: 9.5, color: '#5a6270', marginTop: 1 }}>KG VOLUME</div>
+        </div>
+        <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,.07)', paddingLeft: 12 }}>
+          <div style={{ fontFamily: MONO, fontSize: 15, color: volDelta !== null && volDelta >= 0 ? '#63d08a' : '#e9ecef' }}>
+            {volDelta === null ? '—' : `${volDelta >= 0 ? '+' : ''}${volDelta.toFixed(1)}%`}
+          </div>
+          <div style={{ fontSize: 9.5, color: '#5a6270', marginTop: 1 }}>VS WK {isoWeek(new Date(prevWeekStart))}</div>
+        </div>
       </div>
 
-      {deltaChips.length > 0 && (
-        <div className="mt-4">
-          <Eyebrow className="mb-2">e1RM · THIS WEEK'S LIFTS</Eyebrow>
-          <div className="flex flex-wrap gap-1.5">
-            {deltaChips.map(({ id, d }) => {
-              const name = (exercises.get(id)?.name ?? id).split(' (')[0]
-              const tone =
-                d.deltaPct === null || Math.abs(d.deltaPct) < 0.05
-                  ? 'flat'
-                  : d.deltaPct > 0
-                    ? 'pos'
-                    : 'neg'
-              const arrow = tone === 'pos' ? '↑' : tone === 'neg' ? '↓' : '→'
+      {rows.length > 0 && (
+        <div style={{ marginTop: 14, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: 14 }}>
+          <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270', marginBottom: 10 }}>
+            VOLUME VS CYCLE INTENT · SETS/WK
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {rows.map((r) => {
+              const color = r.behind ? '#e8b44c' : '#57c4cc'
+              const bg = '#1b1f26'
+              const fillPct = Math.min(100, r.pct * 0.85) // using tick as 85% roughly
               return (
-                <DeltaChip key={id} tone={tone}>
-                  {name} {arrow}
-                  {d.deltaPct !== null && Math.abs(d.deltaPct) >= 0.05 && ` ${Math.abs(d.deltaPct).toFixed(1)}%`}
-                </DeltaChip>
+                <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ width: 70, fontSize: 11, color: r.behind ? color : '#8b93a0' }}>{r.label}</span>
+                  <div style={{ flex: 1, height: 6, background: bg, borderRadius: 3, position: 'relative' }}>
+                    <div style={{ width: `${fillPct}%`, height: 6, background: color, borderRadius: 3 }}></div>
+                    <div style={{ position: 'absolute', left: '85%', top: -2, width: 2, height: 10, background: 'rgba(255,255,255,.35)' }}></div>
+                  </div>
+                  <span style={{ width: 48, textAlign: 'right', fontFamily: MONO, fontSize: 10.5, color: r.behind ? color : '#8b93a0' }}>
+                    {r.done}/{r.target}
+                  </span>
+                </div>
               )
             })}
           </div>
+          <div style={{ fontSize: 10, color: '#3d434c', marginTop: 9 }}>
+            │ = cycle target · warm-ups excluded
+          </div>
+        </div>
+      )}
+
+      {latest ? (
+        <div style={{ marginTop: 12, background: '#14171c', borderLeft: '2px solid #e8b44c', borderRadius: '0 10px 10px 0', padding: '12px 14px' }}>
+          <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#e8b44c' }}>
+            FLAGGED IMBALANCE
+          </div>
+          <div style={{ fontSize: 12.5, color: '#c7ccd4', marginTop: 5, lineHeight: 1.5 }}>
+            {latest.text}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button onClick={() => navigate('/create')} style={{ fontSize: 12, color: '#0b0d10', background: '#c8f04b', borderRadius: 7, padding: '7px 12px', fontWeight: 600, border: 'none' }}>
+              Fix in next draft
+            </button>
+            <button onClick={() => navigate('/coach')} style={{ fontSize: 12, color: '#8b93a0', border: '1px solid rgba(255,255,255,.14)', borderRadius: 7, padding: '7px 12px', background: 'none' }}>
+              Ask coach
+            </button>
+            <button onClick={refresh} disabled={busy} style={{ fontSize: 12, color: '#8b93a0', border: '1px solid rgba(255,255,255,.14)', borderRadius: 7, padding: '7px 12px', background: 'none', marginLeft: 'auto' }}>
+              {busy ? '…' : '⟳'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={refresh}
+          disabled={busy}
+          style={{ width: '100%', marginTop: 12, fontSize: 12, color: '#0b0d10', background: '#c8f04b', borderRadius: 7, padding: '10px 12px', fontWeight: 600, border: 'none' }}
+        >
+          {busy ? 'Thinking…' : 'Generate coach summary'}
+        </button>
+      )}
+      {error && <div style={{ marginTop: 8, fontSize: 12, color: '#e0596b' }}>{error}</div>}
+
+      {deltaChips.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {deltaChips.map(({ id, d }) => {
+            const name = (exercises.get(id)?.name ?? id).split(' (')[0].toUpperCase()
+            const tone = d.deltaPct === null || Math.abs(d.deltaPct) < 0.05 ? 'flat' : d.deltaPct > 0 ? 'pos' : 'neg'
+            const arrow = tone === 'pos' ? '↑' : tone === 'neg' ? '↓' : '→'
+            
+            let bg, color
+            if (tone === 'pos') { bg = 'rgba(99,208,138,.12)'; color = '#63d08a' }
+            else if (tone === 'neg') { bg = 'rgba(224,89,107,.12)'; color = '#e0596b' }
+            else { bg = 'rgba(139,147,160,.12)'; color = '#8b93a0' }
+
+            const label = d.deltaPct !== null && Math.abs(d.deltaPct) >= 0.05 
+              ? `${name} ${arrow} ${Math.abs(d.deltaPct).toFixed(1)}%`
+              : `${name} ${arrow}`
+
+            return (
+              <span key={id} style={{ fontSize: 11.5, padding: '5px 10px', borderRadius: 6, background: bg, color: color, fontFamily: MONO }}>
+                {label}
+              </span>
+            )
+          })}
         </div>
       )}
     </div>

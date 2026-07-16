@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ai } from '../lib/ai'
 import { repo } from '../lib/repo'
@@ -6,13 +6,17 @@ import { currentE1RM } from '../lib/rm'
 import { emptyWorkout, presetFromWorkout } from '../lib/workout'
 import { useStore, useUid } from '../store'
 import type { Workout, WorkoutDraft } from '../types'
-import { Btn, Card, EmptyState, Eyebrow } from '../components/ui'
+import { Btn, Card, EmptyState } from '../components/ui'
 import { ExercisePicker } from '../components/ExercisePicker'
 
+/* Verbatim port of design-refs/1f.html. */
+
+const MONO = "'IBM Plex Mono',monospace"
+const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
 const fmtRest = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
 export function AICreate() {
-  const { exercises, activeWorkout, workouts, readinessToday, profile } = useStore()
+  const { exercises, activeWorkout, workouts, readinessToday, profile, cycle } = useStore()
   const uid = useUid()
   const navigate = useNavigate()
   const [draft, setDraft] = useState<WorkoutDraft | null>(null)
@@ -20,7 +24,6 @@ export function AICreate() {
   const [error, setError] = useState('')
   const [instruction, setInstruction] = useState('')
   const [swapIndex, setSwapIndex] = useState<number | null>(null)
-  const [savePreset, setSavePreset] = useState(false)
   const [editing, setEditing] = useState<number | null>(null)
   const requested = useRef(false)
 
@@ -43,252 +46,344 @@ export function AICreate() {
     }
   }, [])
 
+  const completed = useMemo(() => workouts.filter((x) => x.status === 'completed'), [workouts])
+
+  /** Exercises not present in the last comparable session get the lime ADDED treatment. */
+  const lastComparable = useMemo(() => {
+    const day = draft?.cycleDay?.toLowerCase()
+    return day ? completed.find((x) => x.cycleDay?.toLowerCase() === day) : undefined
+  }, [draft, completed])
+
+  const isAdded = (exerciseId: string) =>
+    Boolean(lastComparable) && !lastComparable!.exercises.some((e) => e.exerciseId === exerciseId)
+
   const updateExercise = (i: number, patch: Partial<WorkoutDraft['exercises'][number]>) => {
     if (!draft) return
-    setDraft({
-      ...draft,
-      exercises: draft.exercises.map((e, j) => (j === i ? { ...e, ...patch } : e)),
-    })
+    setDraft({ ...draft, exercises: draft.exercises.map((e, j) => (j === i ? { ...e, ...patch } : e)) })
   }
 
-  const moveExercise = (i: number, dir: -1 | 1) => {
+  const moveDown = (i: number) => {
     if (!draft) return
     const list = [...draft.exercises]
-    const j = i + dir
-    if (j < 0 || j >= list.length) return
+    const j = (i + 1) % list.length
     ;[list[i], list[j]] = [list[j], list[i]]
     setDraft({ ...draft, exercises: list })
   }
 
+  const toWorkout = (): Workout => ({
+    ...emptyWorkout(draft!.cycleDay),
+    name: draft!.name,
+    exercises: draft!.exercises.map((e) => ({
+      exerciseId: e.exerciseId,
+      targetSets: e.sets.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
+      restSeconds: e.restSeconds,
+      sets: [],
+    })),
+  })
+
   const accept = async () => {
     if (!draft) return
-    const workout: Workout = {
-      ...emptyWorkout(draft.cycleDay),
-      name: draft.name,
-      exercises: draft.exercises.map((e) => ({
-        exerciseId: e.exerciseId,
-        targetSets: e.sets.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
-        restSeconds: e.restSeconds,
-        sets: [],
-      })),
-    }
-    if (savePreset) {
-      await repo.savePreset(uid, presetFromWorkout(workout, draft.name))
-    }
-    await repo.saveWorkout(uid, workout)
+    await repo.saveWorkout(uid, toWorkout())
     navigate('/workout', { replace: true })
+  }
+
+  const saveAsPreset = async () => {
+    if (!draft) return
+    await repo.savePreset(uid, presetFromWorkout(toWorkout(), draft.name))
+    navigate('/presets')
   }
 
   if (activeWorkout) {
     return <EmptyState>Finish or discard the workout in progress first.</EmptyState>
   }
 
-  const completed = workouts.filter((x) => x.status === 'completed')
-
   const prescription = (e: WorkoutDraft['exercises'][number]) => {
     const sets = e.sets
+    if (!sets.length) return `REST ${fmtRest(e.restSeconds)}`
     const allSame = sets.every((s) => s.weightKg === sets[0].weightKg && s.reps === sets[0].reps)
     const rm = currentE1RM(completed, e.exerciseId)
-    const pct = rm && sets[0].weightKg ? Math.round((sets[0].weightKg / rm) * 100) : null
+    const pct = rm && sets[0].weightKg ? ` · ~${Math.round((sets[0].weightKg / rm) * 100)}% e1RM` : ''
     const base = allSame
       ? `${sets.length} × ${sets[0].reps} @ ${sets[0].weightKg || 'BW'} KG`
       : sets.map((s) => `${s.weightKg || 'BW'}×${s.reps}`).join(' · ')
-    return `${base}${pct ? ` · ~${pct}% e1RM` : ''} · REST ${fmtRest(e.restSeconds)}`
+    return `${base}${pct} · REST ${fmtRest(e.restSeconds)}`
   }
 
-  return (
-    <div className="flex min-h-dvh flex-col px-5 pt-8">
-      <div className="flex items-start justify-between">
-        <div>
-          <Eyebrow className="!text-lime">DRAFT · REVIEW BEFORE START</Eyebrow>
-          <h1 className="mt-1.5 font-condensed text-[30px] font-bold leading-none">
-            {draft?.name ?? "Today's workout"}
-          </h1>
-        </div>
-        <button
-          onClick={() => generate(instruction || undefined)}
-          disabled={busy}
-          aria-label="regenerate"
-          className="grid h-9 w-9 place-items-center rounded-[9px] border border-white/14 text-[16px] text-ink active:opacity-70 disabled:opacity-40"
-        >
-          ⟳
-        </button>
-      </div>
-      <p className="mt-1.5 text-[11.5px] text-label">
-        Built from: last {draft?.cycleDay ?? 'session'} · weekly volume
-        {readinessToday && ` · readiness ${readinessToday.sleep + readinessToday.energy}/10`}
-        {profile.tweaks[0] && ` · tweak "${profile.tweaks[0]}"`} · e1RM table
-      </p>
+  const builtFrom = [
+    `last ${draft?.cycleDay ?? cycle?.days[cycle.pointer % cycle.days.length] ?? 'session'}`,
+    'weekly volume',
+    readinessToday ? `readiness ${readinessToday.sleep + readinessToday.energy}/10` : null,
+    profile.tweaks[0] ? `tweak "${profile.tweaks[0].split('—')[0].trim()}"` : null,
+    'e1RM table',
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
-      <div className="mt-4 flex-1">
+  return (
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', paddingTop: 62 }}>
+      <div style={{ padding: '10px 20px 0', flex: 1 }}>
+        {/* header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.14em', color: '#c8f04b' }}>
+              DRAFT · REVIEW BEFORE START
+            </div>
+            <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 30, marginTop: 4 }}>
+              {draft?.name ?? "Today's workout"}
+            </div>
+          </div>
+          <button
+            onClick={() => generate(instruction || undefined)}
+            disabled={busy}
+            aria-label="regenerate"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,.14)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#8b93a0',
+              fontSize: 15,
+              background: 'none',
+              opacity: busy ? 0.4 : 1,
+            }}
+          >
+            ⟳
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: '#5a6270', marginTop: 6, lineHeight: 1.5 }}>
+          Built from: {builtFrom}
+        </div>
+
         {busy && <EmptyState>The coach is drafting your workout…</EmptyState>}
         {error && (
-          <Card className="mb-3">
-            <p className="mb-2 text-[13px] text-danger">{error}</p>
+          <Card className="mt-3">
+            <p className="mb-2 text-[13px]" style={{ color: '#e0596b' }}>
+              {error}
+            </p>
             <Btn onClick={() => generate(instruction || undefined)}>Try again</Btn>
           </Card>
         )}
 
         {draft && !busy && (
           <>
-            {draft.exercises.map((e, i) => (
-              <Card key={`${e.exerciseId}-${i}`} className="mb-2">
-                <div className="flex items-start justify-between">
-                  <span className="text-[14px] font-semibold">
-                    {exercises.get(e.exerciseId)?.name ?? e.exerciseId}
-                  </span>
-                  <span className="flex gap-1.5 text-muted">
-                    <button className="px-1" aria-label="swap" onClick={() => setSwapIndex(i)}>⇄</button>
-                    <button className="px-1" aria-label="move up" onClick={() => moveExercise(i, -1)}>↑</button>
-                    <button className="px-1" aria-label="move down" onClick={() => moveExercise(i, 1)}>↓</button>
-                    <button
-                      className="px-1 text-danger"
-                      aria-label="remove"
-                      onClick={() =>
-                        setDraft({ ...draft, exercises: draft.exercises.filter((_, j) => j !== i) })
-                      }
-                    >
-                      ✕
-                    </button>
-                  </span>
-                </div>
-                <button
-                  className="mt-1 block text-left font-mono text-[12px] uppercase tracking-[0.04em] text-teal"
-                  onClick={() => setEditing(editing === i ? null : i)}
-                >
-                  {prescription(e)}
-                </button>
-                <p className="mt-1 text-[11.5px] leading-snug text-label">{e.rationale}</p>
-
-                {editing === i && (
-                  <div className="mt-2 flex flex-col gap-1.5 border-t border-white/6 pt-2">
-                    {e.sets.map((s, si) => (
-                      <div key={si} className="flex items-center gap-2">
-                        <span className="w-5 font-mono text-[11px] text-label">{si + 1}</span>
-                        <input
-                          inputMode="decimal"
-                          aria-label="kg"
-                          value={s.weightKg}
-                          onChange={(ev) =>
-                            updateExercise(i, {
-                              sets: e.sets.map((x, xi) =>
-                                xi === si ? { ...x, weightKg: parseFloat(ev.target.value) || 0 } : x,
-                              ),
-                            })
-                          }
-                          className="h-9 w-16 rounded-[7px] border border-white/12 bg-bg text-center font-mono text-[13px]"
-                        />
-                        <span className="font-mono text-[10px] text-label">KG ×</span>
-                        <input
-                          inputMode="numeric"
-                          aria-label="reps"
-                          value={s.reps}
-                          onChange={(ev) =>
-                            updateExercise(i, {
-                              sets: e.sets.map((x, xi) =>
-                                xi === si ? { ...x, reps: parseInt(ev.target.value, 10) || 1 } : x,
-                              ),
-                            })
-                          }
-                          className="h-9 w-14 rounded-[7px] border border-white/12 bg-bg text-center font-mono text-[13px]"
-                        />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+              {draft.exercises.map((e, i) => {
+                const added = isAdded(e.exerciseId)
+                return (
+                  <div
+                    key={`${e.exerciseId}-${i}`}
+                    style={{
+                      background: '#14171c',
+                      border: `1px solid ${added ? 'rgba(200,240,75,.4)' : 'rgba(255,255,255,.08)'}`,
+                      borderRadius: 11,
+                      padding: '12px 14px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>
+                        {exercises.get(e.exerciseId)?.name ?? e.exerciseId}
+                        {added && (
+                          <span
+                            style={{
+                              fontFamily: MONO,
+                              fontSize: 9,
+                              color: '#c8f04b',
+                              border: '1px solid rgba(200,240,75,.4)',
+                              borderRadius: 4,
+                              padding: '2px 5px',
+                              marginLeft: 4,
+                            }}
+                          >
+                            ADDED
+                          </span>
+                        )}
+                      </span>
+                      <span style={{ display: 'flex', gap: 10, color: '#5a6270', fontSize: 13 }}>
+                        <button aria-label="swap" style={{ background: 'none', border: 'none', color: 'inherit', padding: 0 }} onClick={() => setSwapIndex(i)}>⇄</button>
                         <button
-                          className="ml-auto px-2 text-muted"
-                          aria-label="remove set"
-                          onClick={() =>
-                            updateExercise(i, { sets: e.sets.filter((_, xi) => xi !== si) })
-                          }
+                          aria-label="remove"
+                          style={{ background: 'none', border: 'none', color: 'inherit', padding: 0 }}
+                          onClick={() => setDraft({ ...draft, exercises: draft.exercises.filter((_, j) => j !== i) })}
                         >
                           ✕
                         </button>
-                      </div>
-                    ))}
+                        <button aria-label="reorder" style={{ background: 'none', border: 'none', color: 'inherit', padding: 0 }} onClick={() => moveDown(i)}>≡</button>
+                      </span>
+                    </div>
                     <button
-                      className="mt-1 rounded-[7px] border border-dashed border-white/18 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted"
-                      onClick={() =>
-                        updateExercise(i, {
-                          sets: [...e.sets, e.sets[e.sets.length - 1] ?? { weightKg: 20, reps: 8 }],
-                        })
-                      }
+                      onClick={() => setEditing(editing === i ? null : i)}
+                      style={{
+                        display: 'block',
+                        fontFamily: MONO,
+                        fontSize: 11.5,
+                        color: '#57c4cc',
+                        marginTop: 4,
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        textAlign: 'left',
+                      }}
                     >
-                      ＋ set
+                      {prescription(e)}
                     </button>
+                    <div style={{ fontSize: 11, color: added ? '#c8f04b' : '#5a6270', marginTop: 4 }}>
+                      {e.rationale}
+                    </div>
+
+                    {editing === i && (
+                      <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,.07)', paddingTop: 8 }}>
+                        {e.sets.map((s, si) => (
+                          <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: si ? 6 : 0 }}>
+                            <span style={{ width: 16, fontFamily: MONO, fontSize: 11, color: '#5a6270' }}>{si + 1}</span>
+                            <input
+                              inputMode="decimal"
+                              aria-label="kg"
+                              value={s.weightKg}
+                              onChange={(ev) =>
+                                updateExercise(i, {
+                                  sets: e.sets.map((x, xi) => (xi === si ? { ...x, weightKg: parseFloat(ev.target.value) || 0 } : x)),
+                                })
+                              }
+                              style={{ width: 58, height: 30, borderRadius: 7, background: '#0b0d10', border: '1px solid rgba(255,255,255,.18)', textAlign: 'center', fontFamily: MONO, fontSize: 13, color: '#fff' }}
+                            />
+                            <span style={{ fontFamily: MONO, fontSize: 10, color: '#5a6270' }}>KG ×</span>
+                            <input
+                              inputMode="numeric"
+                              aria-label="reps"
+                              value={s.reps}
+                              onChange={(ev) =>
+                                updateExercise(i, {
+                                  sets: e.sets.map((x, xi) => (xi === si ? { ...x, reps: parseInt(ev.target.value, 10) || 1 } : x)),
+                                })
+                              }
+                              style={{ width: 48, height: 30, borderRadius: 7, background: '#0b0d10', border: '1px solid rgba(255,255,255,.18)', textAlign: 'center', fontFamily: MONO, fontSize: 13, color: '#fff' }}
+                            />
+                            <button
+                              aria-label="remove set"
+                              onClick={() => updateExercise(i, { sets: e.sets.filter((_, xi) => xi !== si) })}
+                              style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#5a6270', fontSize: 12 }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() =>
+                            updateExercise(i, { sets: [...e.sets, e.sets[e.sets.length - 1] ?? { weightKg: 20, reps: 8 }] })
+                          }
+                          style={{ marginTop: 8, width: '100%', border: '1px dashed rgba(255,255,255,.18)', borderRadius: 7, padding: '5px 0', fontSize: 11, color: '#8b93a0', background: 'none' }}
+                        >
+                          ＋ set
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </Card>
-            ))}
+                )
+              })}
 
-            <Btn variant="dashed" className="mb-3 w-full py-3" onClick={() => setSwapIndex(-1)}>
-              ＋ Add exercise from library
-            </Btn>
+              <button
+                onClick={() => setSwapIndex(-1)}
+                style={{
+                  border: '1px dashed rgba(255,255,255,.18)',
+                  borderRadius: 11,
+                  padding: '10px 14px',
+                  textAlign: 'center',
+                  fontSize: 12.5,
+                  color: '#8b93a0',
+                  background: 'none',
+                }}
+              >
+                ＋ Add exercise from library
+              </button>
+            </div>
 
-            <div className="mb-3 flex items-center gap-2 rounded-[11px] bg-sunken p-2">
+            {/* regenerate input */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                margin: '12px 0 16px',
+                background: '#101318',
+                border: '1px solid rgba(255,255,255,.1)',
+                borderRadius: 10,
+                padding: '10px 12px',
+                alignItems: 'center',
+              }}
+            >
               <input
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !busy && generate(instruction || undefined)}
                 placeholder='Regenerate with instruction… "no barbell today"'
-                className="h-9 flex-1 bg-transparent px-2 text-[13px] outline-none placeholder:text-label"
+                style={{ flex: 1, fontSize: 12.5, color: '#e9ecef', background: 'none', border: 'none', outline: 'none' }}
               />
               <button
                 onClick={() => generate(instruction || undefined)}
                 disabled={busy}
                 aria-label="send instruction"
-                className="grid h-9 w-9 place-items-center rounded-[8px] bg-lime text-on-lime disabled:opacity-40"
+                style={{ color: '#c8f04b', fontSize: 14, background: 'none', border: 'none', opacity: busy ? 0.4 : 1 }}
               >
                 ↥
               </button>
             </div>
-
-            <label className="mb-3 flex items-center gap-2 px-1 text-[12.5px] text-muted">
-              <input
-                type="checkbox"
-                checked={savePreset}
-                onChange={(e) => setSavePreset(e.target.checked)}
-                className="h-4 w-4 accent-(--color-lime)"
-              />
-              Also save as a preset
-            </label>
           </>
         )}
       </div>
 
+      {/* footer bar */}
       {draft && !busy && (
-        <div className="sticky bottom-0 -mx-5 flex gap-2 border-t border-white/8 bg-bg/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-          <Btn className="flex-[2] py-3" disabled={!draft.exercises.length} onClick={accept}>
+        <div
+          className="sticky bottom-0"
+          style={{
+            display: 'flex',
+            gap: 8,
+            background: '#101318',
+            borderTop: '1px solid rgba(255,255,255,.08)',
+            padding: '12px 16px max(30px, env(safe-area-inset-bottom))',
+          }}
+        >
+          <button
+            onClick={accept}
+            disabled={!draft.exercises.length}
+            style={{
+              flex: 2,
+              background: '#c8f04b',
+              color: '#0b0d10',
+              borderRadius: 10,
+              textAlign: 'center',
+              padding: '13px 0',
+              fontWeight: 600,
+              fontSize: 15,
+              border: 'none',
+              opacity: draft.exercises.length ? 1 : 0.4,
+            }}
+          >
             Accept & start
-          </Btn>
-          <Btn
-            variant="ghost"
-            className="flex-1 py-3"
-            onClick={async () => {
-              if (!draft) return
-              const workout: Workout = {
-                ...emptyWorkout(draft.cycleDay),
-                name: draft.name,
-                exercises: draft.exercises.map((e) => ({
-                  exerciseId: e.exerciseId,
-                  targetSets: e.sets.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
-                  restSeconds: e.restSeconds,
-                  sets: [],
-                })),
-              }
-              await repo.savePreset(uid, presetFromWorkout(workout, draft.name))
-              navigate('/presets')
+          </button>
+          <button
+            onClick={saveAsPreset}
+            style={{
+              flex: 1,
+              border: '1px solid rgba(255,255,255,.16)',
+              borderRadius: 10,
+              textAlign: 'center',
+              padding: '13px 0',
+              fontSize: 13.5,
+              color: '#e9ecef',
+              background: 'none',
             }}
           >
             Save preset
-          </Btn>
+          </button>
         </div>
       )}
 
       {swapIndex !== null && draft && (
         <ExercisePicker
-          nearMuscles={
-            swapIndex >= 0
-              ? exercises.get(draft.exercises[swapIndex].exerciseId)?.primaryMuscles
-              : undefined
-          }
+          nearMuscles={swapIndex >= 0 ? exercises.get(draft.exercises[swapIndex].exerciseId)?.primaryMuscles : undefined}
           onClose={() => setSwapIndex(null)}
           onPick={(picked) => {
             if (swapIndex >= 0) {

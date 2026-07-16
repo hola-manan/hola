@@ -1,9 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { RmPoint } from '../lib/rm'
 
-// Design hues (validated: CVD ΔE 23 / normal 24 / contrast ≥3:1 on #14171c;
-// the two series are additionally separated by dash pattern + legend, and
-// volume lives in its own mini panel — one axis per plot, never dual-scale).
 const C_E1RM = '#57c4cc'
 const C_E1RM_FILL = 'rgba(87,196,204,.08)'
 const C_LIME = '#c8f04b'
@@ -11,12 +8,14 @@ const C_GRID = 'rgba(255,255,255,.05)'
 const C_AXIS = '#3d434c'
 const C_TEXT = '#8b93a0'
 
+const MONO = "'IBM Plex Mono',monospace"
+
 export const RANGES: { label: string; days: number | null }[] = [
   { label: '1M', days: 30 },
   { label: '3M', days: 91 },
   { label: '6M', days: 182 },
   { label: '1Y', days: 365 },
-  { label: 'All', days: null },
+  { label: 'ALL', days: null },
 ]
 
 const W = 360
@@ -30,7 +29,6 @@ export function filterRange(points: RmPoint[], days: number | null): RmPoint[] {
   return points.filter((p) => p.date >= cutoff)
 }
 
-/** Pure plot: teal e1RM line+area, lime diamonds for real singles, hover crosshair. */
 export function RmPlot({
   points,
   height = H,
@@ -65,7 +63,7 @@ export function RmPlot({
   }, [points, h])
 
   if (!points.length || !geom) {
-    return <p className="py-6 text-center text-[12px] text-label">Nothing in this range yet.</p>
+    return <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12, color: '#5a6270' }}>Nothing in this range yet.</div>
   }
   const { x, y, yVol, yMin, yMax } = geom
 
@@ -100,14 +98,14 @@ export function RmPlot({
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${h}`}
-        className="w-full touch-none select-none"
+        style={{ width: '100%', touchAction: 'none', userSelect: 'none', marginTop: 8 }}
         onPointerMove={(e) => onMove(e.clientX)}
         onPointerLeave={() => setHover(null)}
       >
         {[yMin, (yMin + yMax) / 2, yMax].map((v) => (
           <g key={v}>
             <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} stroke={C_GRID} strokeWidth="1" />
-            <text x={PAD.l - 5} y={y(v) + 3} textAnchor="end" fontSize="9" fill={C_AXIS} fontFamily="IBM Plex Mono, monospace">
+            <text x={PAD.l - 5} y={y(v) + 3} textAnchor="end" fontSize="9" fill={C_AXIS} fontFamily={MONO}>
               {Math.round(v)}
             </text>
           </g>
@@ -134,7 +132,7 @@ export function RmPlot({
                   y={y(p.e1rm) - 8}
                   fontSize="8.5"
                   fill={C_LIME}
-                  fontFamily="IBM Plex Mono, monospace"
+                  fontFamily={MONO}
                 >
                   REAL 1RM · {Math.round(p.e1rm)}
                 </text>
@@ -165,10 +163,10 @@ export function RmPlot({
           />
         )}
 
-        <text x={PAD.l} y={h - 5} fontSize="9" fill={C_AXIS} fontFamily="IBM Plex Mono, monospace">
+        <text x={PAD.l} y={h - 5} fontSize="9" fill={C_AXIS} fontFamily={MONO}>
           {new Date(points[0].date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
         </text>
-        <text x={W - PAD.r} y={h - 5} fontSize="9" fill={C_AXIS} textAnchor="end" fontFamily="IBM Plex Mono, monospace">
+        <text x={W - PAD.r} y={h - 5} fontSize="9" fill={C_AXIS} textAnchor="end" fontFamily={MONO}>
           {new Date(points[points.length - 1].date)
             .toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
             .toUpperCase()}
@@ -176,21 +174,21 @@ export function RmPlot({
       </svg>
 
       {hp && (
-        <div className="mt-1 rounded-[8px] bg-chip px-3 py-2 font-mono text-[11px]">
-          <span className="text-label">
+        <div style={{ marginTop: 4, borderRadius: 8, background: '#1b1f26', padding: '8px 12px', fontFamily: MONO, fontSize: 11 }}>
+          <span style={{ color: '#5a6270' }}>
             {new Date(hp.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
           {' · '}
           <span style={{ color: C_E1RM }}>e1RM {hp.e1rm.toFixed(1)} kg</span>
           {hp.actualSingle && <span style={{ color: C_LIME }}> · real single</span>}
           {' · '}
-          <span className="text-label">vol {Math.round(hp.volumeKg)} kg</span>
+          <span style={{ color: '#5a6270' }}>vol {Math.round(hp.volumeKg)} kg</span>
         </div>
       )}
 
       {showVolume && (
-        <svg viewBox={`0 0 ${W} ${VOL_H}`} className="mt-1 w-full">
-          <text x={PAD.l} y={9} fontSize="8.5" fill={C_AXIS} fontFamily="IBM Plex Mono, monospace">
+        <svg viewBox={`0 0 ${W} ${VOL_H}`} style={{ marginTop: 4, width: '100%' }}>
+          <text x={PAD.l} y={9} fontSize="8.5" fill={C_AXIS} fontFamily={MONO}>
             SESSION VOLUME · KG (OWN SCALE)
           </text>
           <path d={volLine} fill="none" stroke={C_LIME} strokeWidth="1.5" strokeDasharray="3 3" strokeLinejoin="round" />
@@ -201,75 +199,56 @@ export function RmPlot({
   )
 }
 
-/** Full chart with range chips, series toggles, and an accessible data table. */
 export function RmChart({ points }: { points: RmPoint[] }) {
   const [range, setRange] = useState<number | null>(91)
   const [showVolume, setShowVolume] = useState(false)
   const visible = useMemo(() => filterRange(points, range), [points, range])
 
   if (!points.length) {
-    return <p className="py-6 text-center text-[12px] text-label">Log a few sessions to see the trend.</p>
+    return <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12, color: '#5a6270' }}>Log a few sessions to see the trend.</div>
   }
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex gap-1">
-          {RANGES.map((r) => (
-            <button
-              key={r.label}
-              onClick={() => setRange(r.days)}
-              className={`rounded-[6px] px-2 py-1 font-mono text-[10px] uppercase ${
-                range === r.days ? 'bg-lime font-semibold text-on-lime' : 'bg-chip text-muted'
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1">
-          <span className="rounded-[6px] border border-teal/40 px-2 py-1 font-mono text-[10px] text-teal">
-            e1RM ●
-          </span>
-          <button
-            onClick={() => setShowVolume((v) => !v)}
-            className={`rounded-[6px] border px-2 py-1 font-mono text-[10px] ${
-              showVolume ? 'border-lime/40 text-lime' : 'border-white/12 text-label'
-            }`}
-          >
-            ＋ volume ◌
-          </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+        <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270' }}>
+          ESTIMATED 1RM · KG
+        </span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {RANGES.map((r) => {
+            const active = range === r.days
+            return (
+              <button
+                key={r.label}
+                onClick={() => setRange(r.days)}
+                style={{
+                  fontSize: 10, fontFamily: MONO, padding: '3px 8px', borderRadius: 5,
+                  background: active ? '#c8f04b' : 'transparent',
+                  color: active ? '#0b0d10' : '#5a6270',
+                  fontWeight: active ? 600 : 400,
+                  border: 'none', cursor: 'pointer'
+                }}
+              >
+                {r.label}
+              </button>
+            )
+          })}
         </div>
       </div>
-      <div className="mb-1 flex justify-end font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
-        ◆ = actual single
-      </div>
-
+      
       <RmPlot points={visible} showVolume={showVolume} />
 
-      <details className="mt-2 text-[11px] text-muted">
-        <summary className="font-mono text-[10px] uppercase tracking-[0.1em] text-label">Data table</summary>
-        <table className="mt-1 w-full text-left font-mono text-[11px]">
-          <thead>
-            <tr className="text-label">
-              <th className="py-1 font-normal">date</th>
-              <th className="font-normal">e1RM</th>
-              <th className="font-normal">best kg</th>
-              <th className="font-normal">volume</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((p) => (
-              <tr key={p.date} className="border-t border-white/6">
-                <td className="py-1">{new Date(p.date).toLocaleDateString()}</td>
-                <td>{p.e1rm.toFixed(1)}</td>
-                <td>{p.bestWeightKg}</td>
-                <td>{Math.round(p.volumeKg)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </details>
+      <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
+        <span style={{ fontSize: 10.5, fontFamily: MONO, padding: '4px 9px', borderRadius: 6, border: '1px solid rgba(87,196,204,.4)', color: '#57c4cc' }}>
+          e1RM ●
+        </span>
+        <button
+          onClick={() => setShowVolume((v) => !v)}
+          style={{ fontSize: 10.5, fontFamily: MONO, padding: '4px 9px', borderRadius: 6, border: showVolume ? '1px solid rgba(200,240,75,.4)' : '1px solid rgba(255,255,255,.1)', color: showVolume ? '#c8f04b' : '#5a6270', background: 'none', cursor: 'pointer' }}
+        >
+          ＋ volume
+        </button>
+      </div>
     </div>
   )
 }

@@ -106,7 +106,8 @@ export function generateDraft(data: UserData, instruction = ''): WorkoutDraft {
     .toLowerCase()
 
   const lowIntensity =
-    data.readiness !== null && data.readiness.sleep + data.readiness.energy <= 4
+    data.readiness !== null &&
+    (data.readiness.sleep <= 2 || data.readiness.energy <= 2 || data.readiness.sleep + data.readiness.energy <= 4)
   const pctScale = lowIntensity ? 0.88 : 1
 
   const candidates = CATALOG.filter(

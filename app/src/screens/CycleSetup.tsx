@@ -4,7 +4,6 @@ import { repo } from '../lib/repo'
 import { todayStr } from '../lib/cycle'
 import { useStore, useUid } from '../store'
 import { isRestDay } from '../types'
-import { Btn, Card, Eyebrow, Screen } from '../components/ui'
 
 const TEMPLATES: { name: string; days: string[] }[] = [
   { name: 'Push / Pull / Legs / Rest', days: ['Push', 'Pull', 'Legs', 'Rest'] },
@@ -13,13 +12,16 @@ const TEMPLATES: { name: string; days: string[] }[] = [
   { name: 'Full body every other day', days: ['Full Body', 'Rest'] },
 ]
 
+const MONO = "'IBM Plex Mono',monospace"
+const SANS = "'IBM Plex Sans',system-ui,sans-serif"
+const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
+
 export function CycleSetup() {
   const { cycle, presets } = useStore()
   const uid = useUid()
   const navigate = useNavigate()
   const [days, setDays] = useState<string[]>(cycle?.days ?? [])
   const [pointer, setPointer] = useState(cycle?.pointer ?? 0)
-  const [newDay, setNewDay] = useState('')
 
   const save = async () => {
     await repo.saveCycle(uid, {
@@ -44,140 +46,119 @@ export function CycleSetup() {
     presets.filter((p) => p.cycleDay?.toLowerCase() === day.toLowerCase())
 
   return (
-    <Screen title="Cycle">
-      <p className="-mt-2 mb-4 text-[12.5px] text-muted">
-        {days.length ? `${days.length}-day rotation` : 'Define your rotation'} · rest days
-        auto-advance at midnight
-      </p>
+    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 20px 30px' }}>
+      <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Cycle</div>
+      <div style={{ fontSize: 12, color: '#8b93a0', marginTop: 4 }}>
+        {days.length ? `${days.length}-day rotation` : 'Define your rotation'} · rest days auto-advance at midnight
+      </div>
 
       {!days.length && (
-        <>
-          <Eyebrow className="mb-2">START FROM A TEMPLATE</Eyebrow>
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270', marginBottom: 12 }}>START FROM A TEMPLATE</div>
           {TEMPLATES.map((t) => (
-            <Card key={t.name} className="mb-2">
-              <button className="w-full text-left" onClick={() => setDays(t.days)}>
-                <div className="text-[13.5px] font-medium">{t.name}</div>
-                <div className="mt-0.5 font-mono text-[10.5px] uppercase tracking-[0.06em] text-label">
-                  {t.days.join(' → ')}
-                </div>
-              </button>
-            </Card>
+            <div key={t.name} onClick={() => setDays(t.days)} style={{ marginBottom: 8, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '12px 14px', cursor: 'pointer' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{t.name}</div>
+              <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 10.5, letterSpacing: '.06em', color: '#5a6270', textTransform: 'uppercase' }}>
+                {t.days.join(' → ')}
+              </div>
+            </div>
           ))}
-        </>
+        </div>
       )}
 
       {days.length > 0 && (
         <>
-          <Eyebrow className="mb-2">TAP A DAY TO MARK IT AS TODAY</Eyebrow>
-          {days.map((d, i) => {
-            const isToday = pointer === i
-            const rest = isRestDay(d)
-            const dayPresets = presetsFor(d)
-            return (
-              <div key={`${d}-${i}`} className="mb-1.5 flex items-center gap-1.5">
-                <div className="flex flex-col text-faint">
-                  <button className="px-1 leading-none" aria-label="move up" onClick={() => move(i, -1)}>
-                    ▴
-                  </button>
-                  <button className="px-1 leading-none" aria-label="move down" onClick={() => move(i, 1)}>
-                    ▾
-                  </button>
-                </div>
-                <button
-                  onClick={() => setPointer(i)}
-                  className={`flex flex-1 items-center gap-3 rounded-[10px] px-3 py-2.5 text-left ${
-                    isToday
-                      ? 'border border-lime/45 bg-lime/6'
-                      : rest
-                        ? 'border border-dashed border-white/12 bg-sunken'
-                        : 'border border-white/8 bg-card'
-                  }`}
-                >
-                  <span className={`font-mono text-[12px] ${isToday ? 'text-lime' : 'text-label'}`}>
-                    {i + 1}
-                  </span>
-                  <span className="flex-1">
-                    <span className={`block text-[13.5px] font-medium ${rest ? 'text-muted' : ''}`}>{d}</span>
-                    {dayPresets.length > 0 && (
-                      <span className="block font-mono text-[10px] uppercase tracking-[0.06em] text-label">
-                        {dayPresets.map((p) => p.name).join(' · ')}
-                        {dayPresets.length > 1 ? ' — rotating' : ''}
-                      </span>
-                    )}
-                  </span>
-                  {isToday && (
-                    <span className="rounded bg-lime px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-on-lime">
-                      today
-                    </span>
-                  )}
-                </button>
-                <button
-                  className="px-1.5 text-faint"
-                  onClick={() => {
-                    setDays(days.filter((_, j) => j !== i))
-                    if (pointer >= i && pointer > 0) setPointer(pointer - 1)
-                  }}
-                  aria-label={`remove ${d}`}
-                >
-                  ✕
-                </button>
-              </div>
-            )
-          })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+            {days.map((d, i) => {
+              const isToday = pointer === i
+              const rest = isRestDay(d)
+              const dayPresets = presetsFor(d)
+              
+              const isDone = pointer > i // very naive 'done' logic for UI sake
 
-          <div className="mt-2 flex gap-2">
-            <input
-              placeholder="Add day (e.g. Arms, Rest)"
-              value={newDay}
-              onChange={(e) => setNewDay(e.target.value)}
-              className="h-11 flex-1 rounded-[10px] border border-dashed border-white/18 bg-transparent px-3 text-[13px] outline-none placeholder:text-label"
-            />
-            <Btn
-              variant="ghost"
-              disabled={!newDay.trim()}
-              onClick={() => {
-                setDays([...days, newDay.trim()])
-                setNewDay('')
-              }}
-            >
-              ＋ Add
-            </Btn>
+              return (
+                <div key={`${d}-${i}`} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  background: isToday ? 'rgba(200,240,75,.06)' : rest ? '#101318' : '#14171c',
+                  border: isToday ? '1px solid rgba(200,240,75,.45)' : rest ? '1px dashed rgba(255,255,255,.12)' : '1px solid rgba(255,255,255,.08)',
+                  borderRadius: 10, padding: '11px 14px',
+                  opacity: (isDone && !isToday) ? 0.55 : 1
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <button onClick={() => move(i, -1)} style={{ color: '#3d434c', fontSize: 13, background: 'none', border: 'none', padding: 0, lineHeight: 1 }}>▴</button>
+                    <button onClick={() => move(i, 1)} style={{ color: '#3d434c', fontSize: 13, background: 'none', border: 'none', padding: 0, lineHeight: 1 }}>▾</button>
+                  </div>
+                  
+                  <span style={{ fontFamily: MONO, fontSize: 10, color: isToday ? '#c8f04b' : '#5a6270', width: 14 }}>{i + 1}</span>
+                  
+                  <div style={{ flex: 1 }} onClick={() => setPointer(i)}>
+                    <div style={{ fontSize: 14, fontWeight: rest ? 400 : 600, color: rest ? '#8b93a0' : '#e9ecef' }}>{d}</div>
+                    {!rest && (
+                      <div style={{ fontSize: 10.5, color: isToday ? '#8b93a0' : '#5a6270' }}>
+                        {dayPresets.length > 0 ? (
+                          <>
+                            {dayPresets.map((p) => p.name).join(' · ')}
+                            {dayPresets.length > 1 ? ' — rotating' : ''}
+                          </>
+                        ) : 'No presets'}
+                      </div>
+                    )}
+                  </div>
+
+                  <button onClick={() => setDays(days.filter((_, j) => j !== i))} style={{ color: '#5a6270', fontSize: 12, background: 'none', border: 'none', padding: '0 4px', cursor: 'pointer' }}>✕</button>
+
+                  {isToday && (
+                    <span style={{ fontFamily: MONO, fontSize: 9.5, color: '#0b0d10', background: '#c8f04b', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>TODAY</span>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
-          <Card className="mt-4">
-            <Eyebrow className="mb-2">MISSED A DAY?</Eyebrow>
-            <div className="flex gap-2">
-              <div className="flex-1 rounded-[9px] border border-lime/40 p-2.5">
-                <div className="text-[12.5px] font-medium">Shift</div>
-                <div className="text-[11px] text-label">Do it today, everything slides</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <input
+              placeholder="＋ Add day"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const val = e.currentTarget.value.trim()
+                  if (val) {
+                    setDays([...days, val])
+                    e.currentTarget.value = ''
+                  }
+                }
+              }}
+              style={{ flex: 1, border: '1px dashed rgba(255,255,255,.18)', borderRadius: 9, textAlign: 'center', padding: '9px 0', fontSize: 12, color: '#e9ecef', background: 'transparent', outline: 'none' }}
+            />
+            <button onClick={() => navigate('/presets')} style={{ flex: 1, border: '1px solid rgba(255,255,255,.12)', borderRadius: 9, textAlign: 'center', padding: '9px 0', fontSize: 12, color: '#8b93a0', background: 'none', cursor: 'pointer' }}>
+              Edit presets
+            </button>
+          </div>
+
+          <div style={{ marginTop: 16, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 11, padding: '13px 14px' }}>
+            <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270' }}>MISSED A DAY?</div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
+              <div style={{ flex: 1, background: '#1b1f26', border: '1px solid rgba(200,240,75,.4)', borderRadius: 8, padding: '9px 11px' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#c8f04b' }}>Shift</div>
+                <div style={{ fontSize: 10.5, color: '#8b93a0', marginTop: 2 }}>Do it today, everything slides</div>
               </div>
-              <div className="flex-1 rounded-[9px] border border-white/12 p-2.5">
-                <div className="text-[12.5px] font-medium">Skip</div>
-                <div className="text-[11px] text-label">Mark missed, move on</div>
+              <div style={{ flex: 1, background: '#1b1f26', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, padding: '9px 11px' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>Skip</div>
+                <div style={{ fontSize: 10.5, color: '#8b93a0', marginTop: 2 }}>Mark missed, move on</div>
               </div>
             </div>
-            <p className="mt-2 font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint">
-              Default: ask each time · adherence feeds the AI
-            </p>
-          </Card>
+            <div style={{ fontSize: 10.5, color: '#5a6270', marginTop: 8 }}>Default: ask each time · adherence feeds the AI</div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
+            <button onClick={() => setDays([])} style={{ flex: 1, border: '1px solid rgba(255,255,255,.12)', borderRadius: 9, textAlign: 'center', padding: '12px 0', fontSize: 14, color: '#8b93a0', background: 'none', cursor: 'pointer' }}>
+              Start over
+            </button>
+            <button onClick={save} style={{ flex: 1, background: '#c8f04b', borderRadius: 9, textAlign: 'center', padding: '12px 0', fontSize: 14, fontWeight: 600, color: '#0b0d10', border: 'none', cursor: 'pointer' }}>
+              Save cycle
+            </button>
+          </div>
         </>
       )}
-
-      <div className="mb-6 mt-4 flex gap-2">
-        {days.length > 0 && (
-          <>
-            <Btn variant="ghost" onClick={() => setDays([])}>
-              Start over
-            </Btn>
-            <Btn variant="ghost" onClick={() => navigate('/presets')}>
-              Edit presets
-            </Btn>
-          </>
-        )}
-        <Btn className="flex-1 py-3" disabled={!days.length} onClick={save}>
-          Save cycle
-        </Btn>
-      </div>
-    </Screen>
+    </div>
   )
 }

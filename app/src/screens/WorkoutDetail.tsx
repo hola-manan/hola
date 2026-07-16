@@ -6,17 +6,24 @@ import { presetFromWorkout } from '../lib/workout'
 import { rmSeries } from '../lib/rm'
 import { formatSet, setVolume, workoutVolume, workingSetCount } from '../lib/volume'
 import { useStore, useUid } from '../store'
-import { AccentCallout, Btn, Card, DeltaChip, EmptyState, Eyebrow, SunkenCard } from '../components/ui'
+import { currentDayLabel } from '../lib/cycle'
+import { Btn, EmptyState } from '../components/ui'
+
+/* Verbatim port of design-refs/1e.html. */
+
+const MONO = "'IBM Plex Mono',monospace"
+const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
 
 export function WorkoutDetail() {
   const { id } = useParams()
-  const { workouts, exercises } = useStore()
+  const { workouts, exercises, cycle } = useStore()
   const uid = useUid()
   const navigate = useNavigate()
   const w = workouts.find((x) => x.id === id)
   const [report, setReport] = useState<Report | null>(null)
   const [reportBusy, setReportBusy] = useState(false)
   const [reportError, setReportError] = useState('')
+  const [showSets, setShowSets] = useState(false)
 
   useEffect(() => {
     if (id) return aiSubscriptions.report(uid, id, setReport)
@@ -24,7 +31,6 @@ export function WorkoutDetail() {
 
   const completed = useMemo(() => workouts.filter((x) => x.status === 'completed'), [workouts])
 
-  /** e1RM per exercise in this workout vs its previous session (1e's change card). */
   const rmRows = useMemo(() => {
     if (!w) return []
     return w.exercises
@@ -34,23 +40,30 @@ export function WorkoutDetail() {
         if (idx < 0) return null
         const cur = series[idx].e1rm
         const prev = idx > 0 ? series[idx - 1].e1rm : null
-        return {
-          exerciseId: we.exerciseId,
-          e1rm: cur,
-          deltaPct: prev ? ((cur - prev) / prev) * 100 : null,
-        }
+        return { exerciseId: we.exerciseId, e1rm: cur, deltaPct: prev ? ((cur - prev) / prev) * 100 : null }
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
   }, [w, completed])
+
+  /** Muscle delta chips: primary muscle of each exercise, trend by e1RM delta. */
+  const muscleChips = useMemo(() => {
+    const byMuscle = new Map<string, number[]>()
+    for (const r of rmRows) {
+      const m = exercises.get(r.exerciseId)?.primaryMuscles[0]
+      if (!m || r.deltaPct === null) continue
+      byMuscle.set(m, [...(byMuscle.get(m) ?? []), r.deltaPct])
+    }
+    return [...byMuscle.entries()].map(([m, deltas]) => {
+      const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length
+      return { muscle: m, dir: avg > 0.05 ? 'up' : avg < -0.05 ? 'down' : 'flat' }
+    })
+  }, [rmRows, exercises])
 
   const prevComparable = useMemo(() => {
     if (!w?.cycleDay) return null
     return (
       completed.find(
-        (x) =>
-          x.id !== w.id &&
-          x.startedAt < w.startedAt &&
-          x.cycleDay?.toLowerCase() === w.cycleDay!.toLowerCase(),
+        (x) => x.id !== w.id && x.startedAt < w.startedAt && x.cycleDay?.toLowerCase() === w.cycleDay!.toLowerCase(),
       ) ?? null
     )
   }, [w, completed])
@@ -87,118 +100,226 @@ export function WorkoutDetail() {
     navigate('/history', { replace: true })
   }
 
-  const durationMin =
-    w.completedAt && !w.bulkEntered ? Math.round((w.completedAt - w.startedAt) / 60000) : null
+  const durationMin = w.completedAt && !w.bulkEntered ? Math.round((w.completedAt - w.startedAt) / 60000) : null
   const date = new Date(w.startedAt)
+  const chipStyle = (tone: 'pos' | 'neg' | 'flat') => ({
+    fontSize: 11.5,
+    padding: '5px 10px',
+    borderRadius: 6,
+    fontFamily: MONO,
+    background:
+      tone === 'pos' ? 'rgba(99,208,138,.12)' : tone === 'neg' ? 'rgba(224,89,107,.12)' : 'rgba(139,147,160,.12)',
+    color: tone === 'pos' ? '#63d08a' : tone === 'neg' ? '#e0596b' : '#8b93a0',
+  })
 
   return (
-    <div className="px-5 pt-8">
-      <Eyebrow>
+    <div style={{ padding: '62px 20px 24px' }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.14em', color: '#5a6270' }}>
         REPORT{w.cycleDay ? ` · ${w.cycleDay.toUpperCase()}` : ''} ·{' '}
         {date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
         {durationMin !== null && ` · ${durationMin} MIN`} · {workingSetCount(w)} SETS
-      </Eyebrow>
+      </div>
 
-      <h1 className="mt-2 font-condensed text-[34px] font-bold leading-[1.05]">
-        {volDelta !== null
-          ? `Volume ${volDelta >= 0 ? '+' : ''}${volDelta.toFixed(1)}% vs last ${w.cycleDay} day`
-          : (w.name ?? w.cycleDay ?? 'Workout')}
-      </h1>
-      <p className="mt-1.5 text-[12.5px] text-muted">
+      <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 34, lineHeight: 1.05, marginTop: 8 }}>
+        {volDelta !== null ? (
+          <>
+            Volume {volDelta >= 0 ? '+' : ''}
+            {volDelta.toFixed(1)}% vs
+            <br />
+            last {w.cycleDay} day
+          </>
+        ) : (
+          (w.name ?? w.cycleDay ?? 'Workout')
+        )}
+      </div>
+      <div style={{ fontSize: 12.5, color: '#8b93a0', marginTop: 6 }}>
         {Math.round(vol).toLocaleString()} kg total · warm-ups excluded
         {prevComparable &&
           ` · compared to ${new Date(prevComparable.startedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`}
-      </p>
+      </div>
 
       {rmRows.length > 0 && (
-        <Card className="mt-4">
-          <Eyebrow className="mb-2">ESTIMATED 1RM · CHANGE</Eyebrow>
+        <div
+          style={{
+            marginTop: 16,
+            background: '#14171c',
+            border: '1px solid rgba(255,255,255,.08)',
+            borderRadius: 12,
+            padding: 14,
+          }}
+        >
+          <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270', marginBottom: 10 }}>
+            ESTIMATED 1RM · CHANGE
+          </div>
           {rmRows.map((r, i) => (
             <div
               key={r.exerciseId}
-              className={`flex items-center justify-between py-1.5 ${i > 0 ? 'border-t border-white/6' : ''}`}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '6px 0',
+                borderBottom: i < rmRows.length - 1 ? '1px solid rgba(255,255,255,.06)' : 'none',
+                fontSize: 12.5,
+              }}
             >
-              <span className="text-[13px] text-body">
-                {exercises.get(r.exerciseId)?.name ?? r.exerciseId}
-              </span>
-              <span className="flex items-center gap-3">
-                <span className="font-mono text-[13px]">{r.e1rm.toFixed(1)}</span>
-                <span
-                  className={`w-[52px] text-right font-mono text-[12px] ${
+              <span>{(exercises.get(r.exerciseId)?.name ?? r.exerciseId).split(' (')[0]}</span>
+              <span style={{ fontFamily: MONO, color: '#8b93a0' }}>{r.e1rm.toFixed(1)} kg</span>
+              <span
+                style={{
+                  fontFamily: MONO,
+                  width: 52,
+                  textAlign: 'right',
+                  color:
                     r.deltaPct === null || Math.abs(r.deltaPct) < 0.05
-                      ? 'text-muted'
+                      ? '#8b93a0'
                       : r.deltaPct > 0
-                        ? 'text-pos'
-                        : 'text-danger'
-                  }`}
-                >
-                  {r.deltaPct === null ? 'new' : `${r.deltaPct >= 0 ? '+' : ''}${r.deltaPct.toFixed(1)}%`}
-                </span>
+                        ? '#63d08a'
+                        : '#e0596b',
+                }}
+              >
+                {r.deltaPct === null ? 'new' : `${r.deltaPct >= 0 ? '+' : '−'}${Math.abs(r.deltaPct).toFixed(1)}%`}
               </span>
             </div>
           ))}
-        </Card>
+        </div>
       )}
 
-      <div className="mt-3">
-        {report ? (
-          <AccentCallout tone="lime" label="COACH REPORT">
-            <p className="text-[13px] leading-relaxed text-body">{report.text}</p>
-          </AccentCallout>
-        ) : (
-          <Card>
-            <div className="flex items-center justify-between">
-              <Eyebrow>COACH REPORT</Eyebrow>
-              <Btn variant="ghost" className="px-3 py-1.5 text-[12px]" disabled={reportBusy} onClick={generateReport}>
-                {reportBusy ? 'Thinking…' : 'Generate'}
-              </Btn>
-            </div>
-            {reportBusy && <p className="mt-2 text-[12px] text-muted">The coach is reviewing this workout…</p>}
-            {reportError && <p className="mt-2 text-[12px] text-danger">{reportError}</p>}
-          </Card>
-        )}
+      {muscleChips.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {muscleChips.map((c) => (
+            <span key={c.muscle} style={chipStyle(c.dir === 'up' ? 'pos' : c.dir === 'down' ? 'neg' : 'flat')}>
+              {c.muscle.toUpperCase()} {c.dir === 'up' ? '↑' : c.dir === 'down' ? '↓' : '→'}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* coach report callout */}
+      <div
+        style={{
+          marginTop: 12,
+          background: '#14171c',
+          borderLeft: '2px solid #c8f04b',
+          borderRadius: '0 10px 10px 0',
+          padding: '12px 14px',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: MONO,
+            fontSize: 9.5,
+            letterSpacing: '.12em',
+            color: '#c8f04b',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>COACH REPORT</span>
+          {!report && !reportBusy && (
+            <button
+              onClick={generateReport}
+              style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#c8f04b', background: 'none', border: 'none', padding: 0 }}
+            >
+              GENERATE →
+            </button>
+          )}
+        </div>
+        <div style={{ fontSize: 12.5, color: '#c7ccd4', marginTop: 5, lineHeight: 1.5 }}>
+          {report?.text ??
+            (reportBusy ? 'The coach is reviewing this workout…' : 'How this went vs last time, and what to do next.')}
+          {reportError && <span style={{ color: '#e0596b' }}> {reportError}</span>}
+        </div>
       </div>
 
       <Link to="/coach">
-        <SunkenCard className="mt-3 flex items-center justify-between !py-3">
-          <span className="text-[13px] text-body">Ask about this workout</span>
-          <span className="font-mono text-[12px] text-teal">Open chat →</span>
-        </SunkenCard>
+        <div
+          style={{
+            marginTop: 14,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#101318',
+            border: '1px solid rgba(255,255,255,.08)',
+            borderRadius: 10,
+            padding: '11px 14px',
+          }}
+        >
+          <span style={{ fontSize: 12.5, color: '#8b93a0' }}>Ask about this workout</span>
+          <span style={{ fontSize: 12, color: '#57c4cc' }}>Open chat →</span>
+        </div>
       </Link>
 
-      <div className="mt-5">
-        {w.exercises.map((we, i) => {
-          const ex = exercises.get(we.exerciseId)
-          return (
-            <Card key={`${we.exerciseId}-${i}`} className="mb-2">
-              <Link
-                to={`/exercises/${we.exerciseId}`}
-                className="text-[14px] font-semibold underline-offset-2 active:underline"
-              >
-                {ex?.name ?? we.exerciseId}
-              </Link>
-              <div className="mt-2 flex flex-col">
-                {we.sets.map((s, idx) => (
-                  <div
-                    key={s.id}
-                    className={`flex justify-between py-1 font-mono text-[12.5px] ${idx > 0 ? 'border-t border-white/6' : ''}`}
-                  >
-                    <span>
-                      <span className="mr-2 text-label">{idx + 1}</span>
-                      {formatSet(s)}
-                      {s.type !== 'working' && <span className="ml-2 text-[10px] uppercase text-warn">{s.type}</span>}
-                      {s.rpe != null && <span className="ml-2 text-[10px] uppercase text-label">rpe {s.rpe}</span>}
-                    </span>
-                    <span className="text-label">{Math.round(setVolume(s))} kg</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )
-        })}
-      </div>
+      {cycle && (
+        <div style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: '#3d434c' }}>
+          {w.cycleDay && currentDayLabel(cycle).toLowerCase() !== w.cycleDay.toLowerCase()
+            ? `Cycle advanced · today: ${currentDayLabel(cycle)} (day ${(cycle.pointer % cycle.days.length) + 1} of ${cycle.days.length})`
+            : `Cycle: ${currentDayLabel(cycle)} day (day ${(cycle.pointer % cycle.days.length) + 1} of ${cycle.days.length})`}
+        </div>
+      )}
 
-      <div className="mb-6 mt-3 flex gap-2">
+      {/* sets (kept functional, below the mock's fold) */}
+      <button
+        onClick={() => setShowSets((v) => !v)}
+        style={{
+          marginTop: 16,
+          width: '100%',
+          border: '1px dashed rgba(255,255,255,.18)',
+          borderRadius: 10,
+          padding: '9px 0',
+          fontSize: 12.5,
+          color: '#8b93a0',
+          background: 'none',
+        }}
+      >
+        {showSets ? 'Hide sets' : `View all sets (${workingSetCount(w)})`}
+      </button>
+      {showSets &&
+        w.exercises.map((we, i) => (
+          <div
+            key={`${we.exerciseId}-${i}`}
+            style={{
+              marginTop: 8,
+              background: '#14171c',
+              border: '1px solid rgba(255,255,255,.08)',
+              borderRadius: 11,
+              padding: '12px 14px',
+            }}
+          >
+            <Link to={`/exercises/${we.exerciseId}`} style={{ fontSize: 14, fontWeight: 600 }}>
+              {exercises.get(we.exerciseId)?.name ?? we.exerciseId}
+            </Link>
+            {we.sets.map((s, idx) => (
+              <div
+                key={s.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '5px 0',
+                  borderTop: idx > 0 ? '1px solid rgba(255,255,255,.06)' : 'none',
+                  marginTop: idx === 0 ? 8 : 0,
+                  fontFamily: MONO,
+                  fontSize: 12.5,
+                }}
+              >
+                <span>
+                  <span style={{ color: '#5a6270', marginRight: 8 }}>{idx + 1}</span>
+                  {formatSet(s)}
+                  {s.type !== 'working' && (
+                    <span style={{ marginLeft: 8, fontSize: 10, color: '#e8b44c', textTransform: 'uppercase' }}>
+                      {s.type}
+                    </span>
+                  )}
+                  {s.rpe != null && (
+                    <span style={{ marginLeft: 8, fontSize: 10, color: '#5a6270' }}>RPE {s.rpe}</span>
+                  )}
+                </span>
+                <span style={{ color: '#5a6270' }}>{Math.round(setVolume(s))} kg</span>
+              </div>
+            ))}
+          </div>
+        ))}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <Btn variant="ghost" className="flex-1" onClick={saveAsPreset}>
           Save as preset
         </Btn>
@@ -206,11 +327,6 @@ export function WorkoutDetail() {
           Delete
         </Btn>
       </div>
-      {w.bulkEntered && (
-        <div className="mb-6 -mt-2">
-          <DeltaChip tone="flat">BULK ENTERED</DeltaChip>
-        </div>
-      )}
     </div>
   )
 }

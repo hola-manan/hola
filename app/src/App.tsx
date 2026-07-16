@@ -24,15 +24,15 @@ export default function App() {
   const location = useLocation()
 
   if (!authReady) {
-    return <div className="grid min-h-dvh place-items-center text-ink-dim">Loading…</div>
+    return <div className="grid min-h-dvh place-items-center text-muted">Loading…</div>
   }
   if (!user) return <SignIn />
 
   const onWorkoutScreen = location.pathname === '/workout'
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col text-ink">
-      <main className="flex-1 pb-28">
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
+      <main style={{ flex: 1, paddingBottom: 112, position: 'relative' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/workout" element={<WorkoutScreen />} />

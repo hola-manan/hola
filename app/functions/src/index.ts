@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
-import type { Cycle, Profile, Readiness, Workout } from './domain'
+import type { CatalogEntry, Cycle, Profile, Readiness, Workout } from './domain'
 import { buildContext, CATALOG, describeWorkout, getISOWeek, type UserData } from './context'
 import { generateDraft, validateDraft, type WorkoutDraft } from './creator'
 import { generateJson, generateText, usingMock } from './model'
@@ -17,11 +17,12 @@ Always respect the MUST-RESPECT NOTES. Weights are in kg. Be concrete and concis
 async function loadUserData(uid: string): Promise<UserData> {
   const userRef = db.collection('users').doc(uid)
   const today = new Date().toISOString().slice(0, 10)
-  const [profileSnap, cycleSnap, readinessSnap, workoutsSnap] = await Promise.all([
+  const [profileSnap, cycleSnap, readinessSnap, workoutsSnap, customExSnap] = await Promise.all([
     userRef.collection('meta').doc('profile').get(),
     userRef.collection('meta').doc('cycle').get(),
     userRef.collection('readiness').doc(today).get(),
     userRef.collection('workouts').orderBy('startedAt', 'desc').limit(60).get(),
+    userRef.collection('customExercises').get(),
   ])
   return {
     profile: (profileSnap.data() as Profile | undefined) ?? null,
@@ -30,6 +31,7 @@ async function loadUserData(uid: string): Promise<UserData> {
     workouts: workoutsSnap.docs
       .map((d) => d.data() as Workout)
       .filter((w) => w.status === 'completed'),
+    customExercises: customExSnap.docs.map((d) => d.data() as CatalogEntry),
   }
 }
 
@@ -51,12 +53,17 @@ export const generateReport = onCall(async (req) => {
   }
   const data = await loadUserData(uid)
 
+  const catalogMap = new Map()
+  for (const c of CATALOG) catalogMap.set(c.id, c)
+  for (const c of data.customExercises) catalogMap.set(c.id, c)
+
   const text = usingMock
     ? mockReport(data, workout)
     : await generateText(
         SYSTEM,
         `${buildContext(data)}\n\n=== TASK ===\nWrite a post-workout report (max ~180 words) for THIS workout:\n${describeWorkout(
           workout,
+          catalogMap
         )}\n\nCover: what improved vs the last comparable (${workout.cycleDay ?? 'similar'}) session, estimated-1RM changes, muscle groups trending up or lagging, a recovery note if readiness data suggests one, and exactly ONE concrete suggestion for next time.`,
       )
 
@@ -119,7 +126,10 @@ export const createWorkout = onCall(async (req) => {
     return generateDraft(data, instruction)
   }
 
-  const catalogList = CATALOG.map(
+  const catalogList = [
+    ...CATALOG,
+    ...data.customExercises,
+  ].map(
     (e) => `${e.id} | ${e.name} | ${e.primaryMuscles.join('/')} | ${e.equipment}`,
   ).join('\n')
   let draft: WorkoutDraft

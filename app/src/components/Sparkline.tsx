@@ -10,7 +10,7 @@ export function Sparkline({ values }: { values: number[] }) {
     .map((v, i) => `${((i / (values.length - 1)) * (w - 2) + 1).toFixed(1)},${(h - 2 - ((v - min) / span) * (h - 4)).toFixed(1)}`)
     .join(' ')
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-4 w-11" aria-hidden="true">
+    <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden="true">
       <polyline points={pts} fill="none" stroke="#57c4cc" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   )

@@ -5,9 +5,11 @@ import { rmSeries } from '../lib/rm'
 import { weekStartMs } from '../lib/targets'
 import { isRestDay } from '../types'
 import { workoutVolume, workingSetCount } from '../lib/volume'
-import { Card, EmptyState, Eyebrow, Screen, StatStrip } from '../components/ui'
 
-/** Count of exercises whose e1RM went up in a given workout (PR arrows). */
+const MONO = "'IBM Plex Mono',monospace"
+const SANS = "'IBM Plex Sans',system-ui,sans-serif"
+const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
+
 function prCount(all: ReturnType<typeof rmSeriesCache>, w: { id: string; startedAt: number; exercises: { exerciseId: string }[] }): number {
   let count = 0
   for (const we of w.exercises) {
@@ -39,7 +41,6 @@ export function History() {
     : null
   const weekPrs = thisWeek.reduce((s, w) => s + prCount(seriesById, w), 0)
 
-  /** Group by Monday-based week. */
   const groups = useMemo(() => {
     const map = new Map<number, typeof completed>()
     for (const w of completed) {
@@ -67,62 +68,84 @@ export function History() {
   }
 
   return (
-    <Screen
-      title="History"
-      action={<Eyebrow>{completed.length} WORKOUTS</Eyebrow>}
-    >
-      {completed.length > 0 && (
-        <StatStrip
-          className="mb-4"
-          stats={[
-            {
-              value: trainingDaysPerWeek ? `${thisWeek.length}/${trainingDaysPerWeek}` : String(thisWeek.length),
-              label: 'this week',
-            },
-            { value: Math.round(weekVolume).toLocaleString(), label: 'kg volume' },
-            { value: weekPrs > 0 ? `${weekPrs} ↑` : '0', label: 'e1RM PRs', tone: weekPrs > 0 ? 'pos' : 'ink' },
-          ]}
-        />
-      )}
-
-      {groups.map(([start, ws]) => (
-        <div key={start} className="mb-4">
-          <Eyebrow className="mb-1.5">
-            {weekLabel(start)}
-            {weekLabel(start).includes('WEEK') && ` · ${rangeLabel(start)}`}
-          </Eyebrow>
-          {ws.map((w) => {
-            const prs = prCount(seriesById, w)
-            const mins = w.completedAt && !w.bulkEntered ? Math.round((w.completedAt - w.startedAt) / 60000) : null
-            return (
-              <Link key={w.id} to={`/history/${w.id}`}>
-                <Card className="mb-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[14px] font-semibold">
-                      {w.name ?? w.cycleDay ?? 'Workout'}
-                      {w.bulkEntered && (
-                        <span className="ml-2 rounded bg-teal/12 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] text-teal">
-                          bulk
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-mono text-[10.5px] uppercase text-label">
-                      {new Date(w.startedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }).toUpperCase()}
-                      {mins !== null && ` · ${mins}M`}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex gap-4 font-mono text-[11px] text-muted">
-                    <span>{workingSetCount(w)} SETS</span>
-                    <span>{Math.round(workoutVolume(w)).toLocaleString()} KG</span>
-                    {prs > 0 && <span className="text-pos">{prs} e1RM ↑</span>}
-                  </div>
-                </Card>
-              </Link>
-            )
-          })}
+    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px', flex: 1, overflow: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>History</div>
+          <span style={{ fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>{completed.length} WORKOUTS</span>
         </div>
-      ))}
-      {!completed.length && <EmptyState>Nothing here yet.</EmptyState>}
-    </Screen>
+        
+        {completed.length > 0 && (
+          <div style={{ display: 'flex', gap: 14, marginTop: 12, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: MONO, fontSize: 15 }}>
+                {trainingDaysPerWeek ? `${thisWeek.length}/${trainingDaysPerWeek}` : thisWeek.length}
+              </div>
+              <div style={{ fontSize: 9.5, color: '#5a6270', marginTop: 1 }}>THIS WEEK</div>
+            </div>
+            <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,.07)', paddingLeft: 12 }}>
+              <div style={{ fontFamily: MONO, fontSize: 15 }}>{Math.round(weekVolume).toLocaleString()}</div>
+              <div style={{ fontSize: 9.5, color: '#5a6270', marginTop: 1 }}>KG VOLUME</div>
+            </div>
+            <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,.07)', paddingLeft: 12 }}>
+              <div style={{ fontFamily: MONO, fontSize: 15, color: weekPrs > 0 ? '#63d08a' : 'inherit' }}>{weekPrs > 0 ? `${weekPrs} ↑` : '0'}</div>
+              <div style={{ fontSize: 9.5, color: '#5a6270', marginTop: 1 }}>e1RM PRs</div>
+            </div>
+          </div>
+        )}
+
+        {!completed.length && (
+          <div style={{ textAlign: 'center', color: '#5a6270', fontSize: 13, marginTop: 40 }}>
+            Nothing here yet.
+          </div>
+        )}
+
+        {groups.map(([start, ws]) => {
+          const isThisOrLastWeek = start === weekStart || start === weekStart - 7 * 86_400_000
+          const headerText = isThisOrLastWeek ? `${weekLabel(start)} · ${rangeLabel(start)}` : weekLabel(start)
+          
+          return (
+            <div key={start} style={{ marginTop: 16 }}>
+              <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270', marginTop: 14 }}>
+                {headerText}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                {ws.map((w) => {
+                  const prs = prCount(seriesById, w)
+                  const mins = w.completedAt && !w.bulkEntered ? Math.round((w.completedAt - w.startedAt) / 60000) : null
+                  const dateStr = new Date(w.startedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }).toUpperCase()
+                  
+                  return (
+                    <Link key={w.id} to={`/history/${w.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <div style={{ background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span style={{ fontSize: 14, fontWeight: 600 }}>
+                            {w.name ?? w.cycleDay ?? 'Workout'}
+                            {w.bulkEntered && (
+                              <span style={{ fontFamily: MONO, fontSize: 8.5, color: '#57c4cc', border: '1px solid rgba(87,196,204,.4)', borderRadius: 4, padding: '1px 5px', marginLeft: 4 }}>
+                                BULK
+                              </span>
+                            )}
+                          </span>
+                          <span style={{ fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>
+                            {dateStr}{mins !== null ? ` · ~${mins}M` : ''}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, fontFamily: MONO, fontSize: 11, color: '#8b93a0', marginTop: 5 }}>
+                          <span>{workingSetCount(w)} SETS</span>
+                          <span>{Math.round(workoutVolume(w)).toLocaleString()} KG</span>
+                          {prs > 0 ? <span style={{ color: '#63d08a' }}>{prs} e1RM ↑</span> : <span>—</span>}
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+        <div style={{ paddingBottom: 24 }}></div>
+      </div>
+    </div>
   )
 }

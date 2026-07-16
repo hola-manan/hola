@@ -1,24 +1,108 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
 import { ai } from '../lib/ai'
 import { advance, currentDayLabel } from '../lib/cycle'
 import { lastSession, presetFromWorkout, uuid } from '../lib/workout'
-import { formatSet, workingSetCount, workoutVolume } from '../lib/volume'
+import { workingSetCount, workoutVolume } from '../lib/volume'
 import { useStore, useUid } from '../store'
 import type { Exercise, Segment, Workout, WorkoutExercise, WorkoutSet } from '../types'
-import { Btn, Card, EmptyState, Eyebrow } from '../components/ui'
+import { Btn, Card, EmptyState } from '../components/ui'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { RestTimer } from '../components/RestTimer'
 
-const DEFAULT_REST_SECONDS = 120
+/* Verbatim port of design-refs/1c.html — inline px values are the spec. */
+
+const MONO = "'IBM Plex Mono',monospace"
+const GRID: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '36px 1fr 64px 56px 34px',
+  gap: 8,
+  alignItems: 'center',
+}
+const numChip = (active = false): CSSProperties => ({
+  width: 28,
+  height: 28,
+  borderRadius: 7,
+  background: active ? '#c8f04b' : '#1b1f26',
+  color: active ? '#0b0d10' : undefined,
+  textAlign: 'center',
+  lineHeight: '28px',
+  fontFamily: MONO,
+  fontSize: 12,
+  fontWeight: active ? 600 : undefined,
+})
+const prevCell: CSSProperties = {
+  textAlign: 'center',
+  fontFamily: MONO,
+  fontSize: 12.5,
+  color: '#8b93a0',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+}
+const doneCell: CSSProperties = {
+  height: 30,
+  borderRadius: 7,
+  background: '#1b1f26',
+  textAlign: 'center',
+  lineHeight: '30px',
+  fontFamily: MONO,
+  fontSize: 13,
+}
+const inputCellStyle = (limeBorder: boolean): CSSProperties => ({
+  height: 32,
+  borderRadius: 7,
+  background: '#0b0d10',
+  border: `1px solid ${limeBorder ? 'rgba(200,240,75,.5)' : 'rgba(255,255,255,.18)'}`,
+  textAlign: 'center',
+  fontFamily: MONO,
+  fontSize: 14,
+  color: '#fff',
+  width: '100%',
+  outline: 'none',
+  padding: 0,
+})
+const actionChip = (tone: 'lime' | 'grey', active = false): CSSProperties => ({
+  fontSize: 11,
+  whiteSpace: 'nowrap',
+  color: tone === 'lime' ? '#c8f04b' : active ? '#c8f04b' : '#8b93a0',
+  border:
+    tone === 'lime'
+      ? '1px dashed rgba(200,240,75,.4)'
+      : `1px solid ${active ? 'rgba(200,240,75,.4)' : 'rgba(255,255,255,.12)'}`,
+  borderRadius: 6,
+  padding: '4px 9px',
+  background: 'none',
+})
+const iconBtn: CSSProperties = {
+  width: 30,
+  height: 26,
+  borderRadius: 7,
+  background: '#1b1f26',
+  textAlign: 'center',
+  lineHeight: '26px',
+  fontSize: 11,
+  color: '#8b93a0',
+  border: 'none',
+  padding: 0,
+}
 
 const fmtClock = (ms: number) => {
   const s = Math.floor(ms / 1000)
-  const m = Math.floor(s / 60)
-  return `${m}:${String(s % 60).padStart(2, '0')}`
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 const fmtRest = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+const DEFAULT_REST_SECONDS = 120
+
+function RestDivider({ seconds, dim }: { seconds: number; dim?: boolean }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '7px 0', opacity: dim ? 0.55 : 1 }}>
+      <div style={{ flex: 1, height: 2, background: '#1b1f26', borderRadius: 1 }} />
+      <span style={{ fontFamily: MONO, fontSize: 11, color: '#57c4cc' }}>{fmtRest(seconds)}</span>
+      <div style={{ flex: 1, height: 2, background: '#1b1f26', borderRadius: 1 }} />
+    </div>
+  )
+}
 
 export function WorkoutScreen() {
   const { activeWorkout, workouts, exercises, presets, cycle } = useStore()
@@ -32,15 +116,13 @@ export function WorkoutScreen() {
   const [, tick] = useState(0)
 
   useEffect(() => {
-    const t = setInterval(() => tick((n) => n + 1), 1000)
+    const t = setInterval(() => tick((x) => x + 1), 1000)
     return () => clearInterval(t)
   }, [])
 
   const history = useMemo(() => workouts.filter((w) => w.status === 'completed'), [workouts])
 
-  if (!activeWorkout) {
-    return <EmptyState>No workout in progress.</EmptyState>
-  }
+  if (!activeWorkout) return <EmptyState>No workout in progress.</EmptyState>
   const w = activeWorkout
   const save = (next: Workout) => repo.saveWorkout(uid, next)
 
@@ -64,6 +146,12 @@ export function WorkoutScreen() {
     if (j < 0 || j >= list.length) return
     ;[list[i], list[j]] = [list[j], list[i]]
     save({ ...w, exercises: list })
+  }
+
+  const duplicate = (i: number) => {
+    const src = w.exercises[i]
+    const copy: WorkoutExercise = { ...src, sets: [] }
+    save({ ...w, exercises: [...w.exercises.slice(0, i + 1), copy, ...w.exercises.slice(i + 1)] })
   }
 
   const remove = (i: number) => save({ ...w, exercises: w.exercises.filter((_, j) => j !== i) })
@@ -100,41 +188,77 @@ export function WorkoutScreen() {
   )
 
   return (
-    <div className="pb-16">
+    <div
+      style={{
+        minHeight: '100dvh',
+        background: '#0b0d10',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingTop: 62,
+      }}
+    >
       {/* header bar */}
-      <div className="flex items-center justify-between border-b border-white/8 px-4 py-2.5">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 16px 10px',
+          borderBottom: '1px solid rgba(255,255,255,.08)',
+        }}
+      >
         <button
           onClick={discard}
           aria-label="discard workout"
-          className="grid h-[34px] w-11 place-items-center rounded-[9px] bg-chip text-danger"
+          style={{
+            width: 44,
+            height: 34,
+            borderRadius: 9,
+            background: '#1b1f26',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            color: '#e0596b',
+            fontSize: 13,
+          }}
         >
           ✕
         </button>
-        <span className="font-mono text-[13px] text-body">{fmtClock(Date.now() - w.startedAt)}</span>
-        <Btn
-          className="px-5 py-1.5"
-          disabled={!w.exercises.some((e) => e.sets.length)}
+        <div style={{ fontFamily: MONO, fontSize: 15, color: '#8b93a0' }}>
+          {fmtClock(Date.now() - w.startedAt)}
+        </div>
+        <button
           onClick={() => (w.presetId ? setFinishing(true) : finish(false))}
+          disabled={!w.exercises.some((e) => e.sets.length)}
+          style={{
+            background: '#c8f04b',
+            color: '#0b0d10',
+            fontWeight: 600,
+            fontSize: 14,
+            padding: '8px 18px',
+            borderRadius: 9,
+            border: 'none',
+            opacity: w.exercises.some((e) => e.sets.length) ? 1 : 0.4,
+          }}
         >
           Finish
-        </Btn>
+        </button>
       </div>
 
-      {/* session meta */}
-      <div className="flex items-center justify-between px-5 py-2.5">
-        <Eyebrow>
-          {(w.cycleDay ?? w.name ?? 'workout').toUpperCase()} ·{' '}
-          {new Date(w.startedAt)
-            .toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-            .toUpperCase()}
-        </Eyebrow>
-        <Eyebrow>
-          {workingSetCount(w)} / {Math.max(plannedSets, workingSetCount(w))} SETS · VOL{' '}
-          {Math.round(workoutVolume(w)).toLocaleString()} KG
-        </Eyebrow>
-      </div>
+      <div style={{ padding: '12px 16px 96px', flex: 1 }}>
+        {/* session meta */}
+        <div style={{ display: 'flex', gap: 14, fontFamily: MONO, fontSize: 11, color: '#5a6270' }}>
+          <span>
+            {(w.cycleDay ?? w.name ?? 'WORKOUT').toUpperCase()} ·{' '}
+            {new Date(w.startedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
+          </span>
+          <span>
+            {workingSetCount(w)} / {Math.max(plannedSets, workingSetCount(w))} SETS
+          </span>
+          <span>VOL {Math.round(workoutVolume(w)).toLocaleString()} KG</span>
+        </div>
 
-      <div className="px-4">
         {w.exercises.map((we, i) => (
           <div key={`${we.exerciseId}-${i}`} onClick={() => setFocused(i)}>
             <ExerciseGrid
@@ -145,6 +269,7 @@ export function WorkoutScreen() {
               onChange={(next) => updateExercise(i, next)}
               onLogged={() => onSetLogged(i)}
               onSwap={() => setPicker({ swapIndex: i })}
+              onDuplicate={() => duplicate(i)}
               onRemove={() => remove(i)}
               onMoveUp={() => move(i, -1)}
               onMoveDown={() => move(i, 1)}
@@ -152,12 +277,26 @@ export function WorkoutScreen() {
           </div>
         ))}
 
-        <Btn variant="dashed" className="mb-2 mt-1 w-full py-3" onClick={() => setPicker({})}>
+        <button
+          onClick={() => setPicker({})}
+          style={{
+            marginTop: 16,
+            width: '100%',
+            background: 'none',
+            border: '1px dashed rgba(255,255,255,.18)',
+            borderRadius: 9,
+            textAlign: 'center',
+            padding: '10px 0',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#8b93a0',
+          }}
+        >
           ＋ Add exercise
-        </Btn>
-        <p className="mb-6 text-center font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">
+        </button>
+        <div style={{ fontSize: 10.5, color: '#5a6270', marginTop: 8, textAlign: 'center' }}>
           Multi-segment set counts as 1 set · volume sums all segments
-        </p>
+        </div>
       </div>
 
       {finishing && (
@@ -193,16 +332,12 @@ export function WorkoutScreen() {
           endsAt={restEndsAt}
           totalSeconds={restTotal}
           onDone={() => setRestEndsAt(null)}
-          onAdjust={(d) => setRestEndsAt((t) => (t ? t + d * 1000 : t))}
         />
       )}
     </div>
   )
 }
 
-const GRID = 'grid grid-cols-[36px_1fr_64px_56px_34px] items-center gap-2'
-
-/** One exercise as the 1c grid: Set / Previous / kg / Reps / ✓, with inline segments. */
 function ExerciseGrid({
   we,
   exercise,
@@ -211,6 +346,7 @@ function ExerciseGrid({
   onChange,
   onLogged,
   onSwap,
+  onDuplicate,
   onRemove,
   onMoveUp,
   onMoveDown,
@@ -222,6 +358,7 @@ function ExerciseGrid({
   onChange: (we: WorkoutExercise) => void
   onLogged: () => void
   onSwap: () => void
+  onDuplicate: () => void
   onRemove: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -229,9 +366,23 @@ function ExerciseGrid({
   const last = useMemo(() => lastSession(history, we.exerciseId), [history, we.exerciseId])
   const done = we.sets.length
   const nextTarget = we.targetSets?.[done]
-  const prevFor = (setIndex: number): string => {
+  const restSeconds = we.restSeconds ?? DEFAULT_REST_SECONDS
+
+  const prevFor = (setIndex: number) => {
     const s = last?.sets[Math.min(setIndex, (last?.sets.length ?? 1) - 1)]
-    return s ? formatSet(s).replace(/×/g, ' × ') : '—'
+    if (!s) return <>—</>
+    const [first, ...rest] = s.segments
+    return (
+      <>
+        {first.weightKg} × {first.reps}
+        {rest.map((seg, i) => (
+          <span key={i} style={{ color: '#5a6270' }}>
+            {' '}
+            + {seg.weightKg} × {seg.reps}
+          </span>
+        ))}
+      </>
+    )
   }
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -241,10 +392,11 @@ function ExerciseGrid({
   const [reps, setReps] = useState<string>(() =>
     String(nextTarget?.reps ?? last?.sets[0]?.segments[0]?.reps ?? ''),
   )
+  /** Frozen segments of the in-progress set (mock's main row + ↳ sub-rows). */
+  const [frozen, setFrozen] = useState<Segment[]>([])
   const [warmup, setWarmup] = useState(false)
   const [rpe, setRpe] = useState<string>('')
   const [showRpe, setShowRpe] = useState(false)
-  const [pendingSegments, setPendingSegments] = useState<Segment[]>([])
 
   const resetEditor = (nextDone: number) => {
     const t = we.targetSets?.[nextDone]
@@ -252,17 +404,30 @@ function ExerciseGrid({
       setWeight(t.weightKg != null ? String(t.weightKg) : '')
       setReps(String(t.reps))
     }
+    setFrozen([])
     setWarmup(false)
     setRpe('')
     setShowRpe(false)
-    setPendingSegments([])
+  }
+
+  const liveSegment = (): Segment | null => {
+    const wKg = parseFloat(weight)
+    const r = parseInt(reps, 10)
+    if (!Number.isFinite(r) || r < 1) return null
+    return { weightKg: Number.isFinite(wKg) ? wKg : 0, reps: r }
+  }
+
+  const bankSegment = () => {
+    const seg = liveSegment()
+    if (!seg) return
+    setFrozen((f) => [...f, seg])
+    setReps('')
   }
 
   const logSet = () => {
-    const wKg = parseFloat(weight)
-    const r = parseInt(reps, 10)
-    if (!Number.isFinite(r) || r < 1) return
-    const segments = [...pendingSegments, { weightKg: Number.isFinite(wKg) ? wKg : 0, reps: r }]
+    const live = liveSegment()
+    const segments = live ? [...frozen, live] : frozen
+    if (!segments.length) return
     const set: WorkoutSet = {
       id: uuid(),
       segments,
@@ -275,229 +440,272 @@ function ExerciseGrid({
     onLogged()
   }
 
-  const bankSegment = () => {
-    const wKg = parseFloat(weight)
-    const r = parseInt(reps, 10)
-    if (!Number.isFinite(r) || r < 1) return
-    setPendingSegments((s) => [...s, { weightKg: Number.isFinite(wKg) ? wKg : 0, reps: r }])
-    setReps('')
-  }
-
   const deleteSet = (id: string) => {
     if (confirm('Delete this set?')) onChange({ ...we, sets: we.sets.filter((s) => s.id !== id) })
   }
 
-  const targetCount = Math.max(we.targetSets?.length ?? 0, done + 1)
-  const restSeconds = we.restSeconds ?? DEFAULT_REST_SECONDS
+  const addNote = () => {
+    const note = prompt('Note for this set (saved with the next logged set)')
+    if (note) alert('Noted — it will be attached when you log the set.') // simple v1
+  }
 
-  const inputCell = (
-    value: string,
-    onValue: (v: string) => void,
-    label: string,
-  ) => (
-    <input
-      inputMode="decimal"
-      aria-label={label}
-      value={value}
-      onChange={(e) => onValue(e.target.value)}
-      className="h-9 w-full rounded-[7px] border border-lime/50 bg-bg text-center font-mono text-[14px] font-medium text-white outline-none focus:border-lime"
-    />
-  )
+  const upcoming = (we.targetSets ?? []).slice(done + 1)
 
   return (
-    <div className={`mb-4 ${active ? '' : 'opacity-70'}`}>
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[15px] font-semibold text-lime">{exercise?.name ?? we.exerciseId}</span>
-        <button
-          className="grid h-[30px] w-9 place-items-center rounded-[7px] bg-chip text-muted"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="exercise menu"
-        >
-          ···
-        </button>
+    <div style={{ opacity: active ? 1 : 0.7 }}>
+      {/* exercise header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: active ? 16 : 22 }}>
+        <span style={{ color: '#c8f04b', fontWeight: 600, fontSize: 16 }}>
+          {exercise?.name ?? we.exerciseId}
+        </span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button style={iconBtn} aria-label="duplicate exercise" onClick={onDuplicate}>
+            ⧉
+          </button>
+          <button style={iconBtn} aria-label="exercise menu" onClick={() => setMenuOpen((v) => !v)}>
+            ···
+          </button>
+        </div>
       </div>
-      {last && (
-        <Eyebrow className="mb-2">
-          LAST {new Date(last.workout.startedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
-          {' · '}
-          {last.sets.map((s) => formatSet(s)).join('  ')}
-        </Eyebrow>
-      )}
 
       {menuOpen && (
-        <div className="mb-2 flex gap-2">
-          <Btn variant="ghost" className="px-3 py-1.5 text-[12px]" onClick={onSwap}>
-            ⇄ Swap
-          </Btn>
-          <Btn variant="ghost" className="px-3 py-1.5 text-[12px]" onClick={onMoveUp}>
-            ↑
-          </Btn>
-          <Btn variant="ghost" className="px-3 py-1.5 text-[12px]" onClick={onMoveDown}>
-            ↓
-          </Btn>
-          <Btn variant="danger" className="px-3 py-1.5 text-[12px]" onClick={onRemove}>
-            Remove
-          </Btn>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button style={actionChip('grey')} onClick={onSwap}>⇄ swap</button>
+          <button style={actionChip('grey')} onClick={onMoveUp}>↑</button>
+          <button style={actionChip('grey')} onClick={onMoveDown}>↓</button>
+          <button style={{ ...actionChip('grey'), color: '#e0596b' }} onClick={onRemove}>remove</button>
         </div>
       )}
 
       {/* grid header */}
-      <div className={`${GRID} mb-1`}>
-        {['SET', 'PREVIOUS', 'KG', 'REPS', ''].map((h, i) => (
-          <span key={i} className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-label">
-            {h}
-          </span>
-        ))}
+      <div style={{ ...GRID, marginTop: 10, fontSize: 12, color: '#8b93a0', fontWeight: 600 }}>
+        <span>Set</span>
+        <span style={{ textAlign: 'center' }}>Previous</span>
+        <span style={{ textAlign: 'center' }}>kg</span>
+        <span style={{ textAlign: 'center' }}>Reps</span>
+        <span style={{ textAlign: 'center' }}>✓</span>
       </div>
 
       {/* completed sets */}
       {we.sets.map((s, idx) => (
         <div key={s.id}>
-          <div className={`${GRID} py-1 opacity-55`}>
-            <span className="grid h-7 w-7 place-items-center rounded-[6px] bg-chip font-mono text-[12px]">
-              {idx + 1}
-            </span>
-            <span className="font-mono text-[12px] text-muted">{prevFor(idx)}</span>
-            <span className="text-center font-mono text-[13px]">{s.segments[0].weightKg}</span>
-            <span className="text-center font-mono text-[13px]">{s.segments[0].reps}</span>
-            <button className="text-center text-pos" onClick={() => deleteSet(s.id)} aria-label={`set ${idx + 1} done`}>
+          <div style={{ ...GRID, marginTop: 8, opacity: 0.55 }}>
+            <span style={numChip()}>{idx + 1}</span>
+            <span style={prevCell}>{prevFor(idx)}</span>
+            <span style={doneCell}>{s.segments[0].weightKg}</span>
+            <span style={doneCell}>{s.segments[0].reps}</span>
+            <button
+              onClick={() => deleteSet(s.id)}
+              aria-label={`set ${idx + 1} logged`}
+              style={{ textAlign: 'center', color: '#63d08a', fontSize: 14, background: 'none', border: 'none' }}
+            >
               ✓
             </button>
           </div>
           {s.segments.slice(1).map((seg, si) => (
-            <div key={si} className={`${GRID} py-0.5 opacity-55`}>
-              <span className="text-right font-mono text-[12px] text-lime">↳</span>
-              <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-label">
-                SEGMENT {si + 2}{s.type === 'warmup' ? '' : ' · DROP'}
+            <div key={si} style={{ ...GRID, marginTop: 7, opacity: 0.55 }}>
+              <span style={{ textAlign: 'right', color: '#c8f04b', fontFamily: MONO, fontSize: 13 }}>↳</span>
+              <span style={{ textAlign: 'center', fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>
+                SEGMENT {si + 2}{seg.weightKg < s.segments[si].weightKg ? ' · DROP' : ''}
               </span>
-              <span className="text-center font-mono text-[13px]">{seg.weightKg}</span>
-              <span className="text-center font-mono text-[13px]">{seg.reps}</span>
+              <span style={doneCell}>{seg.weightKg}</span>
+              <span style={doneCell}>{seg.reps}</span>
               <span />
             </div>
           ))}
           {(s.type !== 'working' || s.rpe != null) && (
-            <div className="pb-1 pl-11 font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">
-              {s.type !== 'working' && s.type}
-              {s.rpe != null && ` rpe ${s.rpe}`}
+            <div style={{ paddingLeft: 44, marginTop: 3, fontFamily: MONO, fontSize: 10, color: '#3d434c', textTransform: 'uppercase' }}>
+              {s.type !== 'working' ? s.type : ''}
+              {s.rpe != null ? ` rpe ${s.rpe}` : ''}
             </div>
           )}
-          {idx < we.sets.length - 1 && <RestDivider seconds={restSeconds} />}
+          <RestDivider seconds={restSeconds} dim />
         </div>
       ))}
 
-      {/* active set editor */}
+      {/* active set editor (lime container) */}
       {active && (
-        <>
-          {done > 0 && <RestDivider seconds={restSeconds} />}
-          <div className="rounded-[10px] border border-lime/35 bg-lime/3 p-1.5">
-            <div className={GRID}>
-              <span className="grid h-7 w-7 place-items-center rounded-[6px] bg-lime font-mono text-[12px] font-semibold text-on-lime">
-                {done + 1}
-              </span>
-              <span className="font-mono text-[12px] text-muted">{prevFor(done)}</span>
-              {inputCell(weight, setWeight, 'kg')}
-              {inputCell(reps, setReps, 'reps')}
-              <button
-                onClick={logSet}
-                aria-label="log set"
-                className="grid h-9 w-8 place-items-center rounded-[7px] bg-lime text-[15px] font-bold text-on-lime active:opacity-70"
-              >
-                ✓
-              </button>
-            </div>
-            {pendingSegments.map((seg, si) => (
-              <div key={si} className={`${GRID} mt-1`}>
-                <span className="text-right font-mono text-[12px] text-lime">↳</span>
-                <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-label">
-                  SEGMENT {si + 1}
-                </span>
-                <span className="text-center font-mono text-[13px]">{seg.weightKg}</span>
-                <span className="text-center font-mono text-[13px]">{seg.reps}</span>
-                <button
-                  className="text-center text-danger"
-                  aria-label="remove segment"
-                  onClick={() => setPendingSegments(pendingSegments.filter((_, x) => x !== si))}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            <div className="mt-2 flex items-center gap-2 pl-9">
-              <button
-                onClick={bankSegment}
-                className="rounded-[7px] border border-dashed border-lime/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-lime active:opacity-70"
-              >
-                ＋ segment (weight change)
-              </button>
-              <button
-                onClick={() => setShowRpe((v) => !v)}
-                className={`rounded-[7px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] ${showRpe ? 'border-lime/40 text-lime' : 'border-white/12 text-muted'}`}
-              >
-                RPE
-              </button>
-              {showRpe && (
+        <div
+          style={{
+            border: '1px solid rgba(200,240,75,.35)',
+            borderRadius: 10,
+            padding: 8,
+            marginTop: 2,
+            background: 'rgba(200,240,75,.03)',
+          }}
+        >
+          <div style={GRID}>
+            <span style={numChip(true)}>{done + 1}</span>
+            <span style={prevCell}>{prevFor(done)}</span>
+            {frozen.length ? (
+              <>
+                <span style={{ ...inputCellStyle(false), lineHeight: '32px' }}>{frozen[0].weightKg}</span>
+                <span style={{ ...inputCellStyle(false), lineHeight: '32px' }}>{frozen[0].reps}</span>
+              </>
+            ) : (
+              <>
                 <input
                   inputMode="decimal"
-                  aria-label="rpe"
-                  value={rpe}
-                  onChange={(e) => setRpe(e.target.value)}
-                  placeholder="8"
-                  className="h-7 w-11 rounded-[7px] border border-white/12 bg-bg text-center font-mono text-[12px]"
+                  aria-label="kg"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  style={inputCellStyle(true)}
                 />
-              )}
-              <button
-                onClick={() => setWarmup((v) => !v)}
-                className={`rounded-[7px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] ${warmup ? 'border-warn/50 text-warn' : 'border-white/12 text-muted'}`}
-              >
-                warm-up
-              </button>
-            </div>
+                <input
+                  inputMode="numeric"
+                  aria-label="reps"
+                  value={reps}
+                  onChange={(e) => setReps(e.target.value)}
+                  style={inputCellStyle(true)}
+                />
+              </>
+            )}
+            <button
+              onClick={logSet}
+              aria-label="log set"
+              style={{ textAlign: 'center', color: '#5a6270', fontSize: 14, background: 'none', border: 'none' }}
+            >
+              ✓
+            </button>
           </div>
 
-          {/* upcoming target rows */}
-          {(we.targetSets ?? []).slice(done + 1).map((t, ti) => (
-            <div key={ti} className={`${GRID} py-1 opacity-45`}>
-              <span className="grid h-7 w-7 place-items-center rounded-[6px] bg-chip font-mono text-[12px]">
-                {done + 2 + ti}
+          {/* frozen middle segments */}
+          {frozen.slice(1).map((seg, si) => (
+            <div key={si} style={{ ...GRID, marginTop: 7 }}>
+              <span style={{ textAlign: 'right', color: '#c8f04b', fontFamily: MONO, fontSize: 13 }}>↳</span>
+              <span style={{ textAlign: 'center', fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>
+                SEGMENT {si + 2}
               </span>
-              <span className="font-mono text-[12px] text-muted">{prevFor(done + 1 + ti)}</span>
-              <span className="text-center font-mono text-[13px] text-faint">{t.weightKg ?? '—'}</span>
-              <span className="text-center font-mono text-[13px] text-faint">{t.reps}</span>
-              <span className="text-center text-faint">✓</span>
+              <span style={{ ...inputCellStyle(false), lineHeight: '32px' }}>{seg.weightKg}</span>
+              <span style={{ ...inputCellStyle(false), lineHeight: '32px' }}>{seg.reps}</span>
+              <button
+                aria-label="remove segment"
+                onClick={() => setFrozen(frozen.filter((_, x) => x !== si + 1))}
+                style={{ textAlign: 'center', color: '#e0596b', fontSize: 12, background: 'none', border: 'none' }}
+              >
+                ✕
+              </button>
             </div>
           ))}
 
-          <button
-            onClick={() =>
-              onChange({
-                ...we,
-                targetSets: [
-                  ...(we.targetSets ?? []),
-                  we.targetSets?.[we.targetSets.length - 1] ?? {
-                    weightKg: parseFloat(weight) || null,
-                    reps: parseInt(reps, 10) || 8,
-                  },
-                ],
-              })
-            }
-            className="mt-2 w-full rounded-[9px] border border-white/8 bg-card py-2 text-[12.5px] text-muted active:opacity-70"
-          >
-            ＋ Add set ({fmtRest(restSeconds)})
-          </button>
-        </>
-      )}
-      <div className="mt-3 border-b border-white/6" />
-      <span className="sr-only">{targetCount}</span>
-    </div>
-  )
-}
+          {/* live segment inputs when at least one is frozen */}
+          {frozen.length > 0 && (
+            <div style={{ ...GRID, marginTop: 7 }}>
+              <span style={{ textAlign: 'right', color: '#c8f04b', fontFamily: MONO, fontSize: 13 }}>↳</span>
+              <span style={{ textAlign: 'center', fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>
+                SEGMENT {frozen.length + 1} · DROP
+              </span>
+              <input
+                inputMode="decimal"
+                aria-label="kg"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                style={inputCellStyle(false)}
+              />
+              <input
+                inputMode="numeric"
+                aria-label="reps"
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
+                placeholder="–"
+                style={inputCellStyle(false)}
+              />
+              <button
+                aria-label="cancel segment"
+                onClick={() => {
+                  const lastFrozen = frozen[frozen.length - 1]
+                  setFrozen(frozen.slice(0, -1))
+                  setWeight(String(lastFrozen.weightKg))
+                  setReps(String(lastFrozen.reps))
+                }}
+                style={{ textAlign: 'center', color: '#e0596b', fontSize: 12, background: 'none', border: 'none' }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
-function RestDivider({ seconds }: { seconds: number }) {
-  return (
-    <div className="my-1 flex items-center gap-2 pl-9">
-      <div className="h-[2px] flex-1 rounded bg-chip" />
-      <span className="font-mono text-[10px] text-teal">{fmtRest(seconds)}</span>
-      <div className="h-[2px] flex-1 rounded bg-chip" />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingLeft: 44, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button style={actionChip('lime')} onClick={bankSegment}>
+              ＋ segment (weight change)
+            </button>
+            <button style={actionChip('grey', showRpe)} onClick={() => setShowRpe((v) => !v)}>
+              RPE
+            </button>
+            {showRpe && (
+              <input
+                inputMode="decimal"
+                aria-label="rpe"
+                value={rpe}
+                onChange={(e) => setRpe(e.target.value)}
+                placeholder="8"
+                style={{ ...inputCellStyle(false), width: 40, height: 24, fontSize: 11 }}
+              />
+            )}
+            <button style={actionChip('grey', warmup)} onClick={() => setWarmup((v) => !v)}>
+              {warmup ? 'warm-up ✓' : 'warm-up'}
+            </button>
+            <button style={actionChip('grey')} onClick={addNote}>
+              note
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* upcoming target rows */}
+      {active && upcoming.length > 0 && <RestDivider seconds={restSeconds} />}
+      {active &&
+        upcoming.map((_t, ti) => (
+          <div key={ti} style={{ ...GRID, marginTop: ti ? 8 : 0 }}>
+            <span style={numChip()}>{done + 2 + ti}</span>
+            <span style={prevCell}>{prevFor(done + 1 + ti)}</span>
+            <span style={{ height: 30, borderRadius: 7, background: '#1b1f26' }} />
+            <span style={{ height: 30, borderRadius: 7, background: '#1b1f26' }} />
+            <span style={{ textAlign: 'center', color: '#3d434c', fontSize: 14 }}>✓</span>
+          </div>
+        ))}
+
+      {active && (
+        <button
+          onClick={() =>
+            onChange({
+              ...we,
+              targetSets: [
+                ...(we.targetSets ?? []),
+                we.targetSets?.[we.targetSets.length - 1] ?? {
+                  weightKg: parseFloat(weight) || null,
+                  reps: parseInt(reps, 10) || 8,
+                },
+              ],
+            })
+          }
+          style={{
+            marginTop: 10,
+            width: '100%',
+            background: '#14171c',
+            borderRadius: 9,
+            textAlign: 'center',
+            padding: '10px 0',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#e9ecef',
+            border: 'none',
+          }}
+        >
+          ＋ Add Set ({fmtRest(restSeconds)})
+        </button>
+      )}
+
+      {/* inactive: show first upcoming row like the mock's next exercise */}
+      {!active && we.sets.length === 0 && (
+        <div style={{ ...GRID, marginTop: 8 }}>
+          <span style={numChip()}>1</span>
+          <span style={prevCell}>{prevFor(0)}</span>
+          <span style={{ height: 30, borderRadius: 7, background: '#1b1f26' }} />
+          <span style={{ height: 30, borderRadius: 7, background: '#1b1f26' }} />
+          <span style={{ textAlign: 'center', color: '#3d434c', fontSize: 14 }}>✓</span>
+        </div>
+      )}
     </div>
   )
 }
