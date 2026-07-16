@@ -193,6 +193,25 @@ const exercises = PICKS.map(([displayName, dbName]) => {
   }
 })
 
+// Hand-written entries with no good source in the db (kept across regenerations).
+exercises.push({
+  id: 'bulgarian-split-squat-bodyweight',
+  name: 'Bulgarian Split Squat (Bodyweight)',
+  primaryMuscles: ['quads'],
+  secondaryMuscles: ['glutes', 'hamstrings'],
+  equipment: 'bodyweight',
+  instructions: [
+    'Stand about 2 to 3 feet in front of a bench with your back to it, and place the top of one foot on the bench behind you.',
+    'Keep your torso upright and your front knee in line with your foot. This will be your starting position.',
+    'Descend by flexing the front knee and hip, lowering until the front thigh is about parallel to the floor. The rear knee should travel toward the ground.',
+    'Drive through the heel of the front foot to return to the starting position. Complete all reps, then switch legs.',
+  ],
+  images: [
+    'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/0.jpg',
+    'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/1.jpg',
+  ],
+})
+
 const header = `// Curated exercise catalog seeded from free-exercise-db (public domain).
 // https://github.com/yuhonas/free-exercise-db — regenerate via scripts/curate.mjs
 import type { Exercise } from '../types'

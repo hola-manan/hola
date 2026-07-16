@@ -1486,6 +1486,28 @@ export const EXERCISES: Exercise[] = [
     ]
   },
   {
+    "id": "bulgarian-split-squat-bodyweight",
+    "name": "Bulgarian Split Squat (Bodyweight)",
+    "primaryMuscles": [
+      "quads"
+    ],
+    "secondaryMuscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight",
+    "instructions": [
+      "Stand about 2 to 3 feet in front of a bench with your back to it, and place the top of one foot on the bench behind you.",
+      "Keep your torso upright and your front knee in line with your foot. This will be your starting position.",
+      "Descend by flexing the front knee and hip, lowering until the front thigh is about parallel to the floor. The rear knee should travel toward the ground.",
+      "Drive through the heel of the front foot to return to the starting position. Complete all reps, then switch legs."
+    ],
+    "images": [
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/0.jpg",
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/1.jpg"
+    ]
+  },
+  {
     "id": "bulgarian-split-squat-barbell",
     "name": "Bulgarian Split Squat (Barbell)",
     "primaryMuscles": [

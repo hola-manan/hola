@@ -759,6 +759,18 @@
   "equipment": "dumbbell"
  },
  {
+  "id": "bulgarian-split-squat-bodyweight",
+  "name": "Bulgarian Split Squat (Bodyweight)",
+  "primaryMuscles": [
+   "quads"
+  ],
+  "secondaryMuscles": [
+   "glutes",
+   "hamstrings"
+  ],
+  "equipment": "bodyweight"
+ },
+ {
   "id": "bulgarian-split-squat-barbell",
   "name": "Bulgarian Split Squat (Barbell)",
   "primaryMuscles": [
