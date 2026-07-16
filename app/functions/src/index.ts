@@ -6,6 +6,12 @@ import { buildContext, CATALOG, describeWorkout, getISOWeek, type UserData } fro
 import { generateDraft, validateDraft, type WorkoutDraft } from './creator'
 import { generateJson, generateText, usingMock } from './model'
 import { mockChat, mockReport, mockWeeklySummary } from './mocks'
+import { defineSecret } from 'firebase-functions/params'
+import { onSchedule } from 'firebase-functions/v2/scheduler'
+import { syncZeppForUser, runNightlySync } from './zeppSync'
+
+const zeppEmail = defineSecret('ZEPP_EMAIL')
+const zeppPassword = defineSecret('ZEPP_PASSWORD')
 
 initializeApp()
 const db = getFirestore()
@@ -17,17 +23,19 @@ Always respect the MUST-RESPECT NOTES. Weights are in kg. Be concrete and concis
 async function loadUserData(uid: string): Promise<UserData> {
   const userRef = db.collection('users').doc(uid)
   const today = new Date().toISOString().slice(0, 10)
-  const [profileSnap, cycleSnap, readinessSnap, workoutsSnap, customExSnap] = await Promise.all([
+  const [profileSnap, cycleSnap, readinessSnap, workoutsSnap, customExSnap, readinessHistorySnap] = await Promise.all([
     userRef.collection('meta').doc('profile').get(),
     userRef.collection('meta').doc('cycle').get(),
     userRef.collection('readiness').doc(today).get(),
     userRef.collection('workouts').orderBy('startedAt', 'desc').limit(60).get(),
     userRef.collection('customExercises').get(),
+    userRef.collection('readiness').orderBy('date', 'desc').limit(7).get(),
   ])
   return {
     profile: (profileSnap.data() as Profile | undefined) ?? null,
     cycle: (cycleSnap.data() as Cycle | undefined) ?? null,
     readiness: (readinessSnap.data() as Readiness | undefined) ?? null,
+    readinessHistory: readinessHistorySnap.docs.map((d) => d.data() as Readiness),
     workouts: workoutsSnap.docs
       .map((d) => d.data() as Workout)
       .filter((w) => w.status === 'completed'),
@@ -148,3 +156,33 @@ export const createWorkout = onCall(async (req) => {
   }
   return draft
 })
+
+export const syncZepp = onCall(
+  { secrets: [zeppEmail, zeppPassword] },
+  async (req) => {
+    const uid = requireAuth(req.auth?.uid)
+    const creds = { email: zeppEmail.value(), password: zeppPassword.value() }
+    const days = Number(req.data?.days)
+    const result = await syncZeppForUser(db, uid, creds, {
+      days: Number.isFinite(days) ? days : undefined,
+      debug: !!req.data?.debug,
+    })
+    if (result.status !== 'ok' && result.status !== 'no_data') {
+      throw new HttpsError('internal', `Sync failed: ${result.error}`)
+    }
+    return result
+  }
+)
+
+/** Nightly Zepp pull for every wearable-enabled user; two runs absorb late phone syncs. */
+export const zeppNightlySync = onSchedule(
+  {
+    schedule: '30 6,10 * * *',
+    timeZone: 'Asia/Kolkata',
+    secrets: [zeppEmail, zeppPassword],
+    timeoutSeconds: 300,
+  },
+  async () => {
+    await runNightlySync(db, { email: zeppEmail.value(), password: zeppPassword.value() })
+  },
+)

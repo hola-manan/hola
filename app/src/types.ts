@@ -130,12 +130,41 @@ export interface Profile {
   unit: 'kg' | 'lb'
 }
 
-/** Daily readiness record (phase 6): manual check-in now, wearable data later. */
+/** Objective recovery metrics pulled nightly from the Zepp cloud (Amazfit Balance). */
+export interface WatchMetrics {
+  sleepScore?: number // 0-100
+  sleepMinutes?: number // total sleep
+  deepMin?: number
+  remMin?: number
+  lightMin?: number
+  sleepStart?: string // ISO datetime
+  sleepEnd?: string // ISO datetime
+  restingHr?: number // bpm
+  /** Mean resting HR of the previous ≤7 days, precomputed at sync time. */
+  rhrBaseline7d?: number
+  stressAvg?: number // 0-100
+  stressMax?: number
+  pai?: number // daily PAI
+  syncedAt: number // epoch ms
+}
+
+/** Daily readiness record: watch metrics auto-filled by the Zepp sync, manual check-in on top. */
 export interface Readiness {
   date: string // YYYY-MM-DD
-  sleep: number // 1-5
-  energy: number // 1-5
+  sleep?: number // 1-5 manual (watch sleep data replaces it when present)
+  energy?: number // 1-5 manual
   note?: string
+  watch?: WatchMetrics
+}
+
+/** users/{uid}/meta/wearable — client writes enabled/provider, the sync function writes the rest. */
+export interface WearableStatus {
+  enabled: boolean
+  provider: 'zepp'
+  lastSyncAt?: number
+  lastStatus?: 'ok' | 'no_data' | 'auth_error' | 'api_error'
+  lastError?: string
+  lastDataDate?: string // YYYY-MM-DD of newest day with data
 }
 
 /** AI workout creator output (matches the Cloud Function's draft shape). */

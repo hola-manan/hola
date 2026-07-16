@@ -36,4 +36,8 @@ export const ai = {
   generateWeeklySummary: call<Record<string, never>, WeeklySummary>('generateWeeklySummary'),
   coachChat: call<{ messages: ChatMessage[] }, { text: string }>('coachChat'),
   createWorkout: call<{ instruction?: string }, WorkoutDraft>('createWorkout'),
+  syncZepp: call<
+    { days?: number; debug?: boolean },
+    { status: string; dates: string[]; problems: string[]; error?: string; raw?: unknown }
+  >('syncZepp'),
 }

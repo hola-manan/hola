@@ -3,6 +3,8 @@ import { repo } from '../lib/repo'
 import { todayStr } from '../lib/cycle'
 import { useStore, useUid } from '../store'
 
+import { isLowReadiness, sleepScoreTo5, formatSleepDuration, rhrElevated } from '../lib/readinessRule'
+
 /* Readiness card matching 1a's geometry: filled = 17px mono stat columns with
    14px left-padded dividers + amber footer note; unfilled = the 20s check-in. */
 
@@ -21,9 +23,15 @@ export function ReadinessCard() {
   const [energy, setEnergy] = useState(0)
   const [dismissed, setDismissed] = useState(false)
 
-  if (readinessToday) {
-    const r = readinessToday
-    const low = r.sleep <= 2 || r.energy <= 2 || r.sleep + r.energy <= 4
+  const r = readinessToday
+  const hasWatch = !!r?.watch
+  const hasEnergy = typeof r?.energy === 'number'
+
+  if (r && (hasEnergy || (!hasWatch && typeof r.sleep === 'number'))) {
+    const low = isLowReadiness(r)
+    const slp = sleepScoreTo5(r) ?? '-'
+    const slpColor = typeof slp === 'number' && slp <= 2 ? '#e8b44c' : (hasWatch ? '#57c4cc' : '#e9ecef')
+    
     const col = (value: string, label: string, color: string, first = false) => (
       <div
         style={{
@@ -45,8 +53,8 @@ export function ReadinessCard() {
           <span style={{ fontFamily: MONO, fontSize: 9.5, color: '#3d434c' }}>{r.date.slice(5)}</span>
         </div>
         <div style={{ display: 'flex', gap: 0, marginTop: 10 }}>
-          {col(`${r.sleep}/5`, 'Sleep', r.sleep <= 2 ? '#e8b44c' : '#e9ecef', true)}
-          {col(`${r.energy}/5`, 'Energy', r.energy <= 2 ? '#e8b44c' : '#e9ecef')}
+          {col(`${slp}/5`, 'Sleep', slpColor, true)}
+          {col(`${r.energy}/5`, 'Energy', (r.energy ?? 5) <= 2 ? '#e8b44c' : '#e9ecef')}
           {col(low ? 'TRIM' : 'FULL', 'Intensity', low ? '#e8b44c' : '#63d08a')}
         </div>
         {low && (
@@ -111,12 +119,26 @@ export function ReadinessCard() {
         </button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
-        {scale('SLEEP', sleep, setSleep)}
+        {hasWatch && r?.watch ? (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <span style={{ width: 52, fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#57c4cc' }}>
+              WATCH
+            </span>
+            <div style={{ flex: 1, fontSize: 12, color: '#e9ecef' }}>
+              {r.watch.sleepMinutes ? formatSleepDuration(r.watch.sleepMinutes) : 'Unknown'} sleep
+              {r.watch.sleepScore ? ` (score ${r.watch.sleepScore})` : ''}
+              {r.watch.restingHr ? `, RHR ${r.watch.restingHr}` : ''}
+              {rhrElevated(r.watch) && <span style={{ color: '#e8b44c' }}> (elevated)</span>}
+            </div>
+          </div>
+        ) : (
+          scale('SLEEP', sleep, setSleep)
+        )}
         {scale('ENERGY', energy, setEnergy)}
       </div>
       <button
-        disabled={!sleep || !energy}
-        onClick={() => repo.saveReadiness(uid, { date: todayStr(), sleep, energy })}
+        disabled={(!hasWatch && !sleep) || !energy}
+        onClick={() => repo.saveReadiness(uid, { date: todayStr(), ...(hasWatch ? {} : { sleep }), energy })}
         style={{
           marginTop: 10,
           width: '100%',
@@ -127,7 +149,7 @@ export function ReadinessCard() {
           padding: '10px 0',
           borderRadius: 9,
           border: 'none',
-          opacity: sleep && energy ? 1 : 0.4,
+          opacity: ((hasWatch || sleep) && energy) ? 1 : 0.4,
         }}
       >
         Save — the coach factors this in

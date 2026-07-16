@@ -11,6 +11,7 @@ import {
   type Readiness,
   type Workout,
 } from './domain'
+import { formatSleepDuration, rhrElevated, isLowReadiness } from './readinessRule'
 import catalogJson from './catalog.json'
 
 export const CATALOG: CatalogEntry[] = catalogJson as CatalogEntry[]
@@ -20,6 +21,8 @@ export interface UserData {
   profile: Profile | null
   cycle: Cycle | null
   readiness: Readiness | null
+  /** Last ~7 readiness docs, newest first (may include `readiness` itself). */
+  readinessHistory: Readiness[]
   /** Completed workouts, newest first. */
   workouts: Workout[]
   /** Custom user exercises. */
@@ -101,11 +104,66 @@ export function describeCycle(cycle: Cycle | null): string {
   }/${cycle.days.length}).`
 }
 
-export function describeReadiness(r: Readiness | null): string {
-  if (!r) return 'No readiness data for today.'
-  return `Today's readiness check-in: sleep ${r.sleep}/5, energy ${r.energy}/5${
-    r.note ? `, note: "${r.note}"` : ''
-  }.`
+export function describeReadiness(r: Readiness | null, history: Readiness[] = []): string {
+  const lines: string[] = []
+  if (!r) {
+    lines.push('No readiness data for today.')
+  } else if (r.watch) {
+    const w = r.watch
+    const parts: string[] = []
+    if (w.sleepMinutes !== undefined) {
+      const stages = [
+        w.deepMin !== undefined ? `deep ${w.deepMin}m` : null,
+        w.remMin !== undefined ? `REM ${w.remMin}m` : null,
+      ].filter(Boolean)
+      parts.push(
+        `sleep ${formatSleepDuration(w.sleepMinutes)}${
+          w.sleepScore !== undefined ? `, score ${w.sleepScore}/100` : ''
+        }${stages.length ? ` (${stages.join(', ')})` : ''}`,
+      )
+    } else if (w.sleepScore !== undefined) {
+      parts.push(`sleep score ${w.sleepScore}/100`)
+    }
+    if (w.restingHr !== undefined) {
+      parts.push(
+        `resting HR ${w.restingHr} bpm${
+          w.rhrBaseline7d !== undefined ? ` (7-day avg ${w.rhrBaseline7d})` : ''
+        }${rhrElevated(w) ? ' — ELEVATED' : ''}`,
+      )
+    }
+    if (w.stressAvg !== undefined) parts.push(`stress avg ${w.stressAvg}/100`)
+    if (w.pai !== undefined) parts.push(`PAI ${w.pai}`)
+    lines.push(`Watch data (Amazfit Balance): ${parts.join(', ')}.`)
+    lines.push(
+      `Manual energy check-in: ${r.energy !== undefined ? `${r.energy}/5` : 'not entered yet'}${
+        r.note ? `, note: "${r.note}"` : ''
+      }.`,
+    )
+    lines.push(
+      isLowReadiness(r)
+        ? 'Assessment: LOW readiness — reduce intensity ~12% today.'
+        : 'Assessment: normal readiness.',
+    )
+  } else {
+    lines.push(
+      `Today's readiness check-in: sleep ${r.sleep ?? '?'}/5, energy ${r.energy ?? '?'}/5${
+        r.note ? `, note: "${r.note}"` : ''
+      }.`,
+    )
+  }
+
+  const past = history.filter((h) => h.watch && h.date !== r?.date)
+  if (past.length >= 3) {
+    const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length
+    const sleeps = past.map((h) => h.watch?.sleepMinutes).filter((x): x is number => x !== undefined)
+    const rhrs = past.map((h) => h.watch?.restingHr).filter((x): x is number => x !== undefined)
+    const bits = [
+      sleeps.length ? `sleep avg ${formatSleepDuration(avg(sleeps))}` : null,
+      rhrs.length ? `resting HR avg ${Math.round(avg(rhrs))} bpm` : null,
+    ].filter(Boolean)
+    if (bits.length) lines.push(`Past ${past.length}-day trend: ${bits.join(', ')}.`)
+  }
+  return lines.join('\n')
 }
 
 export function describeE1RMs(workouts: Workout[], catalog: Map<string, CatalogEntry>): string {
@@ -127,7 +185,7 @@ export function buildContext(data: UserData): string {
     describeCycle(data.cycle),
     '',
     '=== RECOVERY ===',
-    describeReadiness(data.readiness),
+    describeReadiness(data.readiness, data.readinessHistory),
     '',
     '=== STRENGTH ===',
     describeE1RMs(data.workouts, catalog),

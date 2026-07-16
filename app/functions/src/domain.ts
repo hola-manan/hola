@@ -44,11 +44,36 @@ export interface Profile {
   bodyweight?: { date: string; weightKg: number }[]
   tweaks?: string[]
 }
+/** Mirrored from app/src/types.ts — keep in sync. */
+export interface WatchMetrics {
+  sleepScore?: number // 0-100
+  sleepMinutes?: number
+  deepMin?: number
+  remMin?: number
+  lightMin?: number
+  sleepStart?: string
+  sleepEnd?: string
+  restingHr?: number
+  rhrBaseline7d?: number
+  stressAvg?: number
+  stressMax?: number
+  pai?: number
+  syncedAt: number
+}
 export interface Readiness {
   date: string
-  sleep: number // 1-5
-  energy: number // 1-5
+  sleep?: number // 1-5 manual
+  energy?: number // 1-5 manual
   note?: string
+  watch?: WatchMetrics
+}
+export interface WearableStatus {
+  enabled: boolean
+  provider: 'zepp'
+  lastSyncAt?: number
+  lastStatus?: 'ok' | 'no_data' | 'auth_error' | 'api_error'
+  lastError?: string
+  lastDataDate?: string
 }
 
 export const MAX_REPS_FOR_RM = 12

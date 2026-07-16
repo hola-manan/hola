@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { signOut } from '../lib/firebase'
 import { importStrongCSV } from '../lib/importStrong'
 import { repo } from '../lib/repo'
+import { ai } from '../lib/ai'
 import { todayStr } from '../lib/cycle'
 import { useStore, useUid, DEFAULT_PROFILE } from '../store'
 
@@ -11,13 +12,14 @@ const SANS = "'IBM Plex Sans',system-ui,sans-serif"
 const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
 
 export function ProfileScreen() {
-  const { profile, user, exercises } = useStore()
+  const { profile, user, exercises, wearable } = useStore()
   const uid = useUid()
   const [goals, setGoals] = useState(profile.goals)
   const [heightCm, setHeightCm] = useState(profile.heightCm?.toString() ?? '')
   const [weight, setWeight] = useState('')
   const [tweak, setTweak] = useState('')
   const [importing, setImporting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -150,12 +152,53 @@ export function ProfileScreen() {
           </div>
           <span style={{ fontFamily: MONO, fontSize: 9.5, color: '#c8f04b', fontWeight: 600 }}>ACTIVE</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#101318', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px', opacity: 0.7 }}>
-          <div>
-            <div style={{ fontSize: 13 }}>Amazfit Balance</div>
-            <div style={{ fontSize: 10.5, color: '#5a6270', marginTop: 1 }}>Zepp sync — coming later</div>
+        <div style={{ background: '#101318', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: wearable?.enabled ? 600 : 400 }}>Amazfit Balance (Zepp)</div>
+              {wearable?.enabled ? (
+                <div style={{ fontSize: 10.5, color: '#5a6270', marginTop: 1 }}>
+                  {wearable.lastStatus === 'ok' 
+                    ? `Last sync ${wearable.lastSyncAt ? new Date(wearable.lastSyncAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'never'} · data through ${wearable.lastDataDate ?? '—'}` 
+                    : (wearable.lastError || 'Sync failed')}
+                </div>
+              ) : (
+                <div style={{ fontSize: 10.5, color: '#5a6270', marginTop: 1 }}>Automated nightly sync</div>
+              )}
+            </div>
+            {wearable?.enabled ? (
+              <span style={{ fontFamily: MONO, fontSize: 9.5, color: wearable.lastStatus === 'ok' ? '#57c4cc' : '#e0596b', fontWeight: 600 }}>
+                {wearable.lastStatus === 'ok' ? 'CONNECTED' : 'ERROR'}
+              </span>
+            ) : (
+              <button
+                onClick={() => repo.saveWearable(uid, { enabled: true, provider: 'zepp' })}
+                style={{ fontFamily: MONO, fontSize: 10, color: '#c8f04b', background: 'none', border: 'none', fontWeight: 600, padding: 0 }}
+              >
+                ENABLE
+              </button>
+            )}
           </div>
-          <span style={{ fontFamily: MONO, fontSize: 9.5, color: '#5a6270' }}>STANDBY</span>
+          {wearable?.enabled && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.05)' }}>
+              <button
+                onClick={() => repo.saveWearable(uid, { enabled: false, provider: 'zepp' })}
+                style={{ fontSize: 11, color: '#5a6270', background: 'none', border: 'none', padding: 0 }}
+              >
+                Disable
+              </button>
+              <button
+                disabled={syncing}
+                onClick={async () => {
+                  setSyncing(true)
+                  try { await ai.syncZepp({}) } catch (e) { alert((e as Error).message) } finally { setSyncing(false) }
+                }}
+                style={{ fontFamily: MONO, fontSize: 11, color: '#57c4cc', background: 'none', border: 'none', padding: 0, opacity: syncing ? 0.5 : 1 }}
+              >
+                {syncing ? 'SYNCING...' : 'SYNC NOW'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

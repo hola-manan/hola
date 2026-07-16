@@ -4,6 +4,7 @@
 
 import { e1rmTable, type CatalogEntry, type Workout } from './domain'
 import { CATALOG, CATALOG_BY_ID, type UserData } from './context'
+import { isLowReadiness, LOW_READINESS_SCALE } from './readinessRule'
 
 export interface DraftSet {
   weightKg: number
@@ -105,10 +106,8 @@ export function generateDraft(data: UserData, instruction = ''): WorkoutDraft {
     .join(' ')
     .toLowerCase()
 
-  const lowIntensity =
-    data.readiness !== null &&
-    (data.readiness.sleep <= 2 || data.readiness.energy <= 2 || data.readiness.sleep + data.readiness.energy <= 4)
-  const pctScale = lowIntensity ? 0.88 : 1
+  const lowIntensity = isLowReadiness(data.readiness)
+  const pctScale = lowIntensity ? LOW_READINESS_SCALE : 1
 
   const candidates = CATALOG.filter(
     (e) =>

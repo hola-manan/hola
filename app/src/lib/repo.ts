@@ -9,7 +9,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Cycle, Exercise, Preset, Profile, Readiness, Workout } from '../types'
+import type { Cycle, Exercise, Preset, Profile, Readiness, Workout, WearableStatus } from '../types'
 import type { Report, WeeklySummary } from './ai'
 
 // Firestore layout (single user):
@@ -42,9 +42,11 @@ export const repo = {
   clearCycle: (uid: string) => deleteDoc(userDoc(uid, 'meta', 'cycle')),
   saveProfile: (uid: string, p: Profile) =>
     setDoc(userDoc(uid, 'meta', 'profile'), stripUndefined(p)),
+  saveWearable: (uid: string, w: Partial<WearableStatus>) =>
+    setDoc(userDoc(uid, 'meta', 'wearable'), stripUndefined(w), { merge: true }),
 
-  saveReadiness: (uid: string, r: Readiness) =>
-    setDoc(userDoc(uid, 'readiness', r.date), stripUndefined(r)),
+  saveReadiness: (uid: string, r: Partial<Readiness> & { date: string }) =>
+    setDoc(userDoc(uid, 'readiness', r.date), stripUndefined(r), { merge: true }),
 }
 
 export interface Subscriptions {
@@ -53,6 +55,7 @@ export interface Subscriptions {
   customExercises: (uid: string, cb: (e: Exercise[]) => void) => () => void
   cycle: (uid: string, cb: (c: Cycle | null) => void) => () => void
   profile: (uid: string, cb: (p: Profile | null) => void) => () => void
+  wearable: (uid: string, cb: (w: WearableStatus | null) => void) => () => void
 }
 
 const colData = <T>(uid: string, name: string, order: string | null, cb: (items: T[]) => void) => {
@@ -72,6 +75,7 @@ export const subscriptions: Subscriptions = {
   customExercises: (uid, cb) => colData<Exercise>(uid, 'customExercises', null, cb),
   cycle: (uid, cb) => docData<Cycle>(uid, ['meta', 'cycle'], cb),
   profile: (uid, cb) => docData<Profile>(uid, ['meta', 'profile'], cb),
+  wearable: (uid, cb) => docData<WearableStatus>(uid, ['meta', 'wearable'], cb),
 }
 
 export const aiSubscriptions = {

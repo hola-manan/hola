@@ -22,7 +22,16 @@ export function mockReport(data: UserData, workout: Workout): string {
       ? `Compared against your previous ${workout.cycleDay} session on ${new Date(prev.startedAt).toISOString().slice(0, 10)}.`
       : 'No earlier session of this cycle day to compare against yet.',
     data.readiness
-      ? `Readiness today was sleep ${data.readiness.sleep}/5, energy ${data.readiness.energy}/5.`
+      ? `Readiness today: ${[
+          data.readiness.watch?.sleepScore !== undefined
+            ? `watch sleep score ${data.readiness.watch.sleepScore}/100`
+            : data.readiness.sleep !== undefined
+              ? `sleep ${data.readiness.sleep}/5`
+              : null,
+          data.readiness.energy !== undefined ? `energy ${data.readiness.energy}/5` : null,
+        ]
+          .filter(Boolean)
+          .join(', ') || 'logged, no details'}.`
       : null,
     'Suggestion: add one extra working set to your weakest movement next time.',
   ].filter(Boolean)

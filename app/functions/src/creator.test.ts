@@ -21,6 +21,7 @@ const data = (overrides: Partial<UserData> = {}): UserData => ({
   profile: { goals: 'build shoulders', tweaks: ['weak shoulders'] },
   cycle: { days: ['Push', 'Pull', 'Legs', 'Rest'], pointer: 0, pointerDate: '2026-07-15' },
   readiness: { date: '2026-07-15', sleep: 4, energy: 4 },
+  readinessHistory: [],
   workouts: [bench(60, 8)],
   customExercises: [],
   ...overrides,
@@ -48,6 +49,29 @@ describe('generateDraft', () => {
   it('reduces intensity when readiness is poor', () => {
     const good = generateDraft(data())
     const tired = generateDraft(data({ readiness: { date: 'x', sleep: 2, energy: 2 } }))
+    const g = good.exercises.find((e) => e.exerciseId === 'bench-press-barbell')!
+    const t = tired.exercises.find((e) => e.exerciseId === 'bench-press-barbell')!
+    expect(t.sets[0].weightKg).toBeLessThan(g.sets[0].weightKg)
+    expect(t.rationale).toContain('low readiness')
+  })
+
+  it('reduces intensity when watch data shows poor sleep despite good energy', () => {
+    const good = generateDraft(data())
+    const tired = generateDraft(
+      data({
+        readiness: {
+          date: '2026-07-15',
+          energy: 4,
+          watch: {
+            sleepScore: 40,
+            sleepMinutes: 300,
+            restingHr: 60,
+            rhrBaseline7d: 52,
+            syncedAt: 0,
+          },
+        },
+      }),
+    )
     const g = good.exercises.find((e) => e.exerciseId === 'bench-press-barbell')!
     const t = tired.exercises.find((e) => e.exerciseId === 'bench-press-barbell')!
     expect(t.sets[0].weightKg).toBeLessThan(g.sets[0].weightKg)
@@ -133,5 +157,30 @@ describe('context', () => {
     expect(text).toContain('weak shoulders')
     expect(text).toContain('sleep 4/5')
     expect(text).toContain('Today is Push day')
+  })
+
+  it('buildContext surfaces watch metrics and the trim assessment', () => {
+    const text = buildContext(
+      data({
+        readiness: {
+          date: '2026-07-15',
+          energy: 3,
+          watch: {
+            sleepScore: 55,
+            sleepMinutes: 330,
+            deepMin: 40,
+            restingHr: 60,
+            rhrBaseline7d: 52,
+            stressAvg: 44,
+            pai: 11,
+            syncedAt: 0,
+          },
+        },
+      }),
+    )
+    expect(text).toContain('Watch data (Amazfit Balance)')
+    expect(text).toContain('resting HR 60 bpm (7-day avg 52) — ELEVATED')
+    expect(text).toContain('score 55/100')
+    expect(text).toContain('LOW readiness')
   })
 })

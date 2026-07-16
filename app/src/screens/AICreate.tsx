@@ -4,6 +4,7 @@ import { ai } from '../lib/ai'
 import { repo } from '../lib/repo'
 import { currentE1RM } from '../lib/rm'
 import { emptyWorkout, presetFromWorkout } from '../lib/workout'
+import { isLowReadiness } from '../lib/readinessRule'
 import { useStore, useUid } from '../store'
 import type { Workout, WorkoutDraft } from '../types'
 import { Btn, Card, EmptyState } from '../components/ui'
@@ -112,7 +113,7 @@ export function AICreate() {
   const builtFrom = [
     `last ${draft?.cycleDay ?? cycle?.days[cycle.pointer % cycle.days.length] ?? 'session'}`,
     'weekly volume',
-    readinessToday ? `readiness ${readinessToday.sleep + readinessToday.energy}/10` : null,
+    readinessToday ? `readiness ${isLowReadiness(readinessToday) ? 'LOW' : 'NORMAL'}` : null,
     profile.tweaks[0] ? `tweak "${profile.tweaks[0].split('—')[0].trim()}"` : null,
     'e1RM table',
   ]

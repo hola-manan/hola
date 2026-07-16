@@ -11,7 +11,7 @@ import { auth } from './lib/firebase'
 import { aiSubscriptions, repo, subscriptions } from './lib/repo'
 import { autoAdvanceRestDays, todayStr } from './lib/cycle'
 import { EXERCISES } from './data/exercises'
-import type { Cycle, Exercise, Preset, Profile, Readiness, Workout } from './types'
+import type { Cycle, Exercise, Preset, Profile, Readiness, Workout, WearableStatus } from './types'
 
 export const DEFAULT_PROFILE: Profile = {
   goals: '',
@@ -33,6 +33,7 @@ interface Store {
   activeWorkout: Workout | null
   /** Today's readiness check-in, if filled. */
   readinessToday: Readiness | null
+  wearable: WearableStatus | null
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -45,6 +46,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [customExercises, setCustomExercises] = useState<Exercise[]>([])
   const [cycle, setCycle] = useState<Cycle | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [wearable, setWearable] = useState<WearableStatus | null>(null)
   const [readinessToday, setReadinessToday] = useState<Readiness | null>(null)
 
   useEffect(
@@ -63,6 +65,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCustomExercises([])
       setCycle(null)
       setProfile(null)
+      setWearable(null)
       setReadinessToday(null)
       return
     }
@@ -73,6 +76,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       subscriptions.customExercises(uid, setCustomExercises),
       subscriptions.cycle(uid, setCycle),
       subscriptions.profile(uid, setProfile),
+      subscriptions.wearable(uid, setWearable),
       aiSubscriptions.readinessToday(uid, todayStr(), setReadinessToday),
     ]
     return () => unsubs.forEach((u) => u())
@@ -100,8 +104,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       exerciseList,
       activeWorkout: workouts.find((w) => w.status === 'in_progress') ?? null,
       readinessToday,
+      wearable,
     }
-  }, [user, authReady, workouts, presets, customExercises, cycle, profile, readinessToday])
+  }, [user, authReady, workouts, presets, customExercises, cycle, profile, readinessToday, wearable])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
