@@ -174,10 +174,10 @@ export const syncZepp = onCall(
   }
 )
 
-/** Nightly Zepp pull for every wearable-enabled user; two runs absorb late phone syncs. */
+/** Daily Zepp pull for every wearable-enabled user (3-day window absorbs late phone syncs). */
 export const zeppNightlySync = onSchedule(
   {
-    schedule: '30 6,10 * * *',
+    schedule: '0 16 * * *',
     timeZone: 'Asia/Kolkata',
     secrets: [zeppEmail, zeppPassword],
     timeoutSeconds: 300,
