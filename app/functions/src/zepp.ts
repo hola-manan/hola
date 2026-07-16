@@ -63,6 +63,10 @@ export async function loginWithPassword(
       }),
     },
   )
+  if (res1.status === 429) {
+    // Zepp throttles this endpoint hard; not a credentials problem — retryable.
+    throw new ZeppApiError('zepp login rate-limited (HTTP 429) — retry later')
+  }
   const location = res1.headers.get('location') ?? ''
   let access = ''
   let countryCode = ''

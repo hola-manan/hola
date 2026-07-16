@@ -9,6 +9,7 @@ import {
   parseSleepEvent,
   parseStressEvent,
   renewAppToken,
+  ZeppApiError,
   ZeppAuthError,
   type ZeppTokens,
 } from './zepp'
@@ -157,6 +158,11 @@ describe('loginWithPassword', () => {
     const f = (async () =>
       fakeResponse({ status: 303, location: 'https://x.example/?error=invalid' })) as typeof fetch
     await expect(loginWithPassword('a@b.c', 'bad', f)).rejects.toBeInstanceOf(ZeppAuthError)
+  })
+
+  it('HTTP 429 → retryable ZeppApiError, not an auth failure', async () => {
+    const f = (async () => fakeResponse({ status: 429, ok: false })) as typeof fetch
+    await expect(loginWithPassword('a@b.c', 'pw', f)).rejects.toBeInstanceOf(ZeppApiError)
   })
 })
 
