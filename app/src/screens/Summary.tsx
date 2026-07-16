@@ -90,11 +90,13 @@ export function Summary() {
         WEEKLY SUMMARY · WK {isoWeek(now)} · {formatDateRange()}
       </div>
       <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 34, lineHeight: 1.05, marginTop: 8 }}>
-        {flagged.length
-          ? <>On target,<br />except {flagged[0].label.toLowerCase()}</>
-          : thisWeek.length
-            ? 'On target this week'
-            : 'Nothing logged yet this week'}
+        {!thisWeek.length ? (
+          <>Nothing logged<br />yet this week</>
+        ) : flagged.length ? (
+          <>On target,<br />except {flagged[0].label.toLowerCase()}</>
+        ) : (
+          'On target this week'
+        )}
       </div>
       <div style={{ display: 'flex', gap: 14, marginTop: 12, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px' }}>
         <div style={{ flex: 1 }}>
