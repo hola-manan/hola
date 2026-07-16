@@ -747,6 +747,31 @@
   "equipment": "barbell"
  },
  {
+  "id": "bulgarian-split-squat-dumbbell",
+  "name": "Bulgarian Split Squat (Dumbbell)",
+  "primaryMuscles": [
+   "quads"
+  ],
+  "secondaryMuscles": [
+   "glutes",
+   "hamstrings"
+  ],
+  "equipment": "dumbbell"
+ },
+ {
+  "id": "bulgarian-split-squat-barbell",
+  "name": "Bulgarian Split Squat (Barbell)",
+  "primaryMuscles": [
+   "quads"
+  ],
+  "secondaryMuscles": [
+   "calves",
+   "glutes",
+   "hamstrings"
+  ],
+  "equipment": "barbell"
+ },
+ {
   "id": "hip-thrust",
   "name": "Hip Thrust",
   "primaryMuscles": [

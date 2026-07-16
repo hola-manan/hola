@@ -78,6 +78,8 @@ const PICKS = [
   ['Lunge (Dumbbell)', 'Dumbbell Lunges'],
   ['Lunge (Barbell)', 'Barbell Lunge'],
   ['Walking Lunge', 'Barbell Walking Lunge'],
+  ['Bulgarian Split Squat (Dumbbell)', 'Split Squat with Dumbbells'],
+  ['Bulgarian Split Squat (Barbell)', 'One Leg Barbell Squat'],
   ['Hip Thrust', 'Barbell Hip Thrust'],
   ['Glute Kickback', 'Glute Kickback'],
   ['Standing Calf Raise', 'Standing Calf Raises'],
