@@ -41,7 +41,8 @@ export function ExercisePicker({
   }, [exerciseList, q, muscle, nearMuscles])
 
   return (
-    <div className="fixed inset-0 z-30 mx-auto flex max-w-lg flex-col bg-bg">
+    // fixed overlay escapes #root's safe-area padding — re-apply the top inset
+    <div className="fixed inset-0 z-30 mx-auto flex max-w-lg flex-col bg-bg pt-[env(safe-area-inset-top)]">
       <div className="flex items-center gap-2 border-b border-line p-3">
         <input
           autoFocus

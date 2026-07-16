@@ -53,9 +53,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* full-height app with safe areas for standalone PWA */
+/* full-height app with safe areas for standalone PWA (viewport-fit=cover
+   draws under the OS status bar — the top inset keeps content clear of it) */
 #root {
   min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
