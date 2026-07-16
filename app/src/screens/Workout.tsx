@@ -1,17 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
 import { ai } from '../lib/ai'
 import { advance, currentDayLabel } from '../lib/cycle'
 import { lastSession, presetFromWorkout, uuid } from '../lib/workout'
-import { formatSet } from '../lib/volume'
+import { formatSet, workingSetCount, workoutVolume } from '../lib/volume'
 import { useStore, useUid } from '../store'
-import type { Exercise, Segment, SetType, Workout, WorkoutExercise } from '../types'
-import { Btn, Card, EmptyState, Stepper } from '../components/ui'
+import type { Exercise, Segment, Workout, WorkoutExercise, WorkoutSet } from '../types'
+import { Btn, Card, EmptyState, Eyebrow } from '../components/ui'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { RestTimer } from '../components/RestTimer'
 
 const DEFAULT_REST_SECONDS = 120
+
+const fmtClock = (ms: number) => {
+  const s = Math.floor(ms / 1000)
+  const m = Math.floor(s / 60)
+  return `${m}:${String(s % 60).padStart(2, '0')}`
+}
+const fmtRest = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
 export function WorkoutScreen() {
   const { activeWorkout, workouts, exercises, presets, cycle } = useStore()
@@ -19,12 +26,17 @@ export function WorkoutScreen() {
   const navigate = useNavigate()
   const [picker, setPicker] = useState<null | { swapIndex?: number }>(null)
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null)
+  const [restTotal, setRestTotal] = useState(DEFAULT_REST_SECONDS)
   const [finishing, setFinishing] = useState(false)
+  const [focused, setFocused] = useState(0)
+  const [, tick] = useState(0)
 
-  const history = useMemo(
-    () => workouts.filter((w) => w.status === 'completed'),
-    [workouts],
-  )
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const history = useMemo(() => workouts.filter((w) => w.status === 'completed'), [workouts])
 
   if (!activeWorkout) {
     return <EmptyState>No workout in progress.</EmptyState>
@@ -32,10 +44,8 @@ export function WorkoutScreen() {
   const w = activeWorkout
   const save = (next: Workout) => repo.saveWorkout(uid, next)
 
-  const updateExercise = (i: number, we: WorkoutExercise) => {
-    const next = { ...w, exercises: w.exercises.map((e, j) => (j === i ? we : e)) }
-    save(next)
-  }
+  const updateExercise = (i: number, we: WorkoutExercise) =>
+    save({ ...w, exercises: w.exercises.map((e, j) => (j === i ? we : e)) })
 
   const addExercise = (e: Exercise) => {
     if (picker?.swapIndex !== undefined) {
@@ -43,6 +53,7 @@ export function WorkoutScreen() {
       updateExercise(i, { ...w.exercises[i], exerciseId: e.id, sets: [] })
     } else {
       save({ ...w, exercises: [...w.exercises, { exerciseId: e.id, sets: [] }] })
+      setFocused(w.exercises.length)
     }
     setPicker(null)
   }
@@ -59,6 +70,7 @@ export function WorkoutScreen() {
 
   const onSetLogged = (i: number) => {
     const rest = w.exercises[i].restSeconds ?? DEFAULT_REST_SECONDS
+    setRestTotal(rest)
     setRestEndsAt(Date.now() + rest * 1000)
   }
 
@@ -75,59 +87,83 @@ export function WorkoutScreen() {
       const preset = presets.find((p) => p.id === w.presetId)
       if (preset) await repo.savePreset(uid, presetFromWorkout(completed, preset.name, preset))
     }
-    // Completing a workout advances the cycle when it was for the current day.
     if (cycle && w.cycleDay && currentDayLabel(cycle).toLowerCase() === w.cycleDay.toLowerCase()) {
       await repo.saveCycle(uid, advance(cycle))
     }
-    // Auto post-workout report; fire-and-forget (needs connectivity, logging doesn't).
     ai.generateReport({ workoutId: w.id }).catch(() => {})
     navigate(`/history/${w.id}`, { replace: true })
   }
 
+  const plannedSets = w.exercises.reduce(
+    (sum, e) => sum + Math.max(e.targetSets?.length ?? 0, e.sets.length),
+    0,
+  )
+
   return (
-    <div className="px-4 pt-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{w.name ?? w.cycleDay ?? 'Workout'}</h1>
-          <div className="text-xs text-ink-dim">
-            started {new Date(w.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-        </div>
-        <Btn variant="danger" onClick={discard}>
-          Discard
+    <div className="pb-16">
+      {/* header bar */}
+      <div className="flex items-center justify-between border-b border-white/8 px-4 py-2.5">
+        <button
+          onClick={discard}
+          aria-label="discard workout"
+          className="grid h-[34px] w-11 place-items-center rounded-[9px] bg-chip text-danger"
+        >
+          ✕
+        </button>
+        <span className="font-mono text-[13px] text-body">{fmtClock(Date.now() - w.startedAt)}</span>
+        <Btn
+          className="px-5 py-1.5"
+          disabled={!w.exercises.some((e) => e.sets.length)}
+          onClick={() => (w.presetId ? setFinishing(true) : finish(false))}
+        >
+          Finish
         </Btn>
       </div>
 
-      {w.exercises.map((we, i) => (
-        <ExerciseCard
-          key={`${we.exerciseId}-${i}`}
-          we={we}
-          exercise={exercises.get(we.exerciseId)}
-          history={history}
-          onChange={(next) => updateExercise(i, next)}
-          onLogged={() => onSetLogged(i)}
-          onSwap={() => setPicker({ swapIndex: i })}
-          onRemove={() => remove(i)}
-          onMoveUp={() => move(i, -1)}
-          onMoveDown={() => move(i, 1)}
-        />
-      ))}
+      {/* session meta */}
+      <div className="flex items-center justify-between px-5 py-2.5">
+        <Eyebrow>
+          {(w.cycleDay ?? w.name ?? 'workout').toUpperCase()} ·{' '}
+          {new Date(w.startedAt)
+            .toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+            .toUpperCase()}
+        </Eyebrow>
+        <Eyebrow>
+          {workingSetCount(w)} / {Math.max(plannedSets, workingSetCount(w))} SETS · VOL{' '}
+          {Math.round(workoutVolume(w)).toLocaleString()} KG
+        </Eyebrow>
+      </div>
 
-      <Btn variant="ghost" className="mb-3 w-full py-3.5" onClick={() => setPicker({})}>
-        ＋ Add exercise
-      </Btn>
-      <Btn
-        className="mb-8 w-full py-3.5 text-base"
-        disabled={!w.exercises.some((e) => e.sets.length)}
-        onClick={() => (w.presetId ? setFinishing(true) : finish(false))}
-      >
-        Complete workout
-      </Btn>
+      <div className="px-4">
+        {w.exercises.map((we, i) => (
+          <div key={`${we.exerciseId}-${i}`} onClick={() => setFocused(i)}>
+            <ExerciseGrid
+              we={we}
+              exercise={exercises.get(we.exerciseId)}
+              history={history}
+              active={focused === i}
+              onChange={(next) => updateExercise(i, next)}
+              onLogged={() => onSetLogged(i)}
+              onSwap={() => setPicker({ swapIndex: i })}
+              onRemove={() => remove(i)}
+              onMoveUp={() => move(i, -1)}
+              onMoveDown={() => move(i, 1)}
+            />
+          </div>
+        ))}
+
+        <Btn variant="dashed" className="mb-2 mt-1 w-full py-3" onClick={() => setPicker({})}>
+          ＋ Add exercise
+        </Btn>
+        <p className="mb-6 text-center font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">
+          Multi-segment set counts as 1 set · volume sums all segments
+        </p>
+      </div>
 
       {finishing && (
         <div className="fixed inset-0 z-30 grid place-items-center bg-black/70 p-6">
           <Card className="w-full">
-            <p className="mb-3 text-sm">
+            <p className="mb-3 text-[13px] text-body">
               You tweaked things mid-workout. Save the changes back to the preset, or keep the
               preset as it was?
             </p>
@@ -155,6 +191,7 @@ export function WorkoutScreen() {
       {restEndsAt && (
         <RestTimer
           endsAt={restEndsAt}
+          totalSeconds={restTotal}
           onDone={() => setRestEndsAt(null)}
           onAdjust={(d) => setRestEndsAt((t) => (t ? t + d * 1000 : t))}
         />
@@ -163,17 +200,14 @@ export function WorkoutScreen() {
   )
 }
 
-const SET_TYPES: { key: SetType; label: string }[] = [
-  { key: 'working', label: 'Work' },
-  { key: 'warmup', label: 'Warm-up' },
-  { key: 'drop', label: 'Drop' },
-  { key: 'failure', label: 'Failure' },
-]
+const GRID = 'grid grid-cols-[36px_1fr_64px_56px_34px] items-center gap-2'
 
-function ExerciseCard({
+/** One exercise as the 1c grid: Set / Previous / kg / Reps / ✓, with inline segments. */
+function ExerciseGrid({
   we,
   exercise,
   history,
+  active,
   onChange,
   onLogged,
   onSwap,
@@ -184,6 +218,7 @@ function ExerciseCard({
   we: WorkoutExercise
   exercise: Exercise | undefined
   history: Workout[]
+  active: boolean
   onChange: (we: WorkoutExercise) => void
   onLogged: () => void
   onSwap: () => void
@@ -192,35 +227,47 @@ function ExerciseCard({
   onMoveDown: () => void
 }) {
   const last = useMemo(() => lastSession(history, we.exerciseId), [history, we.exerciseId])
-  const nextTarget = we.targetSets?.[we.sets.length]
-  const lastFirst = last?.sets[Math.min(we.sets.length, last.sets.length - 1)]?.segments[0]
+  const done = we.sets.length
+  const nextTarget = we.targetSets?.[done]
+  const prevFor = (setIndex: number): string => {
+    const s = last?.sets[Math.min(setIndex, (last?.sets.length ?? 1) - 1)]
+    return s ? formatSet(s).replace(/×/g, ' × ') : '—'
+  }
 
   const [menuOpen, setMenuOpen] = useState(false)
-  const [weight, setWeight] = useState<number>(
-    nextTarget?.weightKg ?? lastFirst?.weightKg ?? 20,
+  const [weight, setWeight] = useState<string>(() =>
+    String(nextTarget?.weightKg ?? last?.sets[0]?.segments[0]?.weightKg ?? ''),
   )
-  const [reps, setReps] = useState<number>(nextTarget?.reps ?? lastFirst?.reps ?? 8)
-  const [type, setType] = useState<SetType>('working')
-  const [rpe, setRpe] = useState<number | null>(null)
-  /** Segments already banked for the set currently being performed. */
+  const [reps, setReps] = useState<string>(() =>
+    String(nextTarget?.reps ?? last?.sets[0]?.segments[0]?.reps ?? ''),
+  )
+  const [warmup, setWarmup] = useState(false)
+  const [rpe, setRpe] = useState<string>('')
+  const [showRpe, setShowRpe] = useState(false)
   const [pendingSegments, setPendingSegments] = useState<Segment[]>([])
 
-  const resetEditor = (setsLogged: number) => {
-    const target = we.targetSets?.[setsLogged]
-    if (target?.weightKg != null) setWeight(target.weightKg)
-    if (target) setReps(target.reps)
-    setType('working')
-    setRpe(null)
+  const resetEditor = (nextDone: number) => {
+    const t = we.targetSets?.[nextDone]
+    if (t) {
+      setWeight(t.weightKg != null ? String(t.weightKg) : '')
+      setReps(String(t.reps))
+    }
+    setWarmup(false)
+    setRpe('')
+    setShowRpe(false)
     setPendingSegments([])
   }
 
   const logSet = () => {
-    const segments = [...pendingSegments, { weightKg: weight, reps }]
-    const set = {
+    const wKg = parseFloat(weight)
+    const r = parseInt(reps, 10)
+    if (!Number.isFinite(r) || r < 1) return
+    const segments = [...pendingSegments, { weightKg: Number.isFinite(wKg) ? wKg : 0, reps: r }]
+    const set: WorkoutSet = {
       id: uuid(),
       segments,
-      type,
-      ...(rpe !== null ? { rpe } : {}),
+      type: warmup ? 'warmup' : 'working',
+      ...(rpe && parseFloat(rpe) ? { rpe: parseFloat(rpe) } : {}),
       completedAt: Date.now(),
     }
     onChange({ ...we, sets: [...we.sets, set] })
@@ -229,126 +276,228 @@ function ExerciseCard({
   }
 
   const bankSegment = () => {
-    setPendingSegments((s) => [...s, { weightKg: weight, reps }])
-    // Mid-set weight changes usually go down; leave weight for the user to adjust.
-    setReps(Math.max(1, Math.round(reps / 2)))
+    const wKg = parseFloat(weight)
+    const r = parseInt(reps, 10)
+    if (!Number.isFinite(r) || r < 1) return
+    setPendingSegments((s) => [...s, { weightKg: Number.isFinite(wKg) ? wKg : 0, reps: r }])
+    setReps('')
   }
 
-  const deleteSet = (id: string) =>
-    onChange({ ...we, sets: we.sets.filter((s) => s.id !== id) })
+  const deleteSet = (id: string) => {
+    if (confirm('Delete this set?')) onChange({ ...we, sets: we.sets.filter((s) => s.id !== id) })
+  }
 
-  const targetCount = we.targetSets?.length ?? 0
+  const targetCount = Math.max(we.targetSets?.length ?? 0, done + 1)
+  const restSeconds = we.restSeconds ?? DEFAULT_REST_SECONDS
+
+  const inputCell = (
+    value: string,
+    onValue: (v: string) => void,
+    label: string,
+  ) => (
+    <input
+      inputMode="decimal"
+      aria-label={label}
+      value={value}
+      onChange={(e) => onValue(e.target.value)}
+      className="h-9 w-full rounded-[7px] border border-lime/50 bg-bg text-center font-mono text-[14px] font-medium text-white outline-none focus:border-lime"
+    />
+  )
 
   return (
-    <Card className="mb-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="font-semibold">{exercise?.name ?? we.exerciseId}</div>
-          <div className="text-xs text-ink-dim">
-            {targetCount > 0 && `target ${we.sets.length}/${targetCount} sets`}
-            {nextTarget &&
-              ` · next ${nextTarget.weightKg != null ? `${nextTarget.weightKg} kg × ` : ''}${nextTarget.reps}`}
-          </div>
-          {last && (
-            <div className="mt-0.5 text-xs text-ink-dim">
-              last time ({new Date(last.workout.startedAt).toLocaleDateString()}):{' '}
-              {last.sets.map((s) => formatSet(s)).join(' · ')}
-            </div>
-          )}
-        </div>
-        <button className="px-2 text-xl text-ink-dim" onClick={() => setMenuOpen((v) => !v)}>
-          ⋯
+    <div className={`mb-4 ${active ? '' : 'opacity-70'}`}>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-[15px] font-semibold text-lime">{exercise?.name ?? we.exerciseId}</span>
+        <button
+          className="grid h-[30px] w-9 place-items-center rounded-[7px] bg-chip text-muted"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label="exercise menu"
+        >
+          ···
         </button>
       </div>
+      {last && (
+        <Eyebrow className="mb-2">
+          LAST {new Date(last.workout.startedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
+          {' · '}
+          {last.sets.map((s) => formatSet(s)).join('  ')}
+        </Eyebrow>
+      )}
 
       {menuOpen && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Btn variant="ghost" onClick={onSwap}>
-            Swap
+        <div className="mb-2 flex gap-2">
+          <Btn variant="ghost" className="px-3 py-1.5 text-[12px]" onClick={onSwap}>
+            ⇄ Swap
           </Btn>
-          <Btn variant="ghost" onClick={onMoveUp}>
+          <Btn variant="ghost" className="px-3 py-1.5 text-[12px]" onClick={onMoveUp}>
             ↑
           </Btn>
-          <Btn variant="ghost" onClick={onMoveDown}>
+          <Btn variant="ghost" className="px-3 py-1.5 text-[12px]" onClick={onMoveDown}>
             ↓
           </Btn>
-          <Btn variant="danger" onClick={onRemove}>
+          <Btn variant="danger" className="px-3 py-1.5 text-[12px]" onClick={onRemove}>
             Remove
           </Btn>
         </div>
       )}
 
-      {we.sets.length > 0 && (
-        <div className="mt-3 flex flex-col gap-1">
-          {we.sets.map((s, idx) => (
-            <div key={s.id} className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-1.5 text-sm">
-              <span>
-                <span className="mr-2 text-ink-dim">{idx + 1}.</span>
-                {formatSet(s)}
-                {s.type !== 'working' && <span className="ml-2 text-xs text-warn">{s.type}</span>}
-                {s.rpe != null && <span className="ml-2 text-xs text-ink-dim">RPE {s.rpe}</span>}
+      {/* grid header */}
+      <div className={`${GRID} mb-1`}>
+        {['SET', 'PREVIOUS', 'KG', 'REPS', ''].map((h, i) => (
+          <span key={i} className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-label">
+            {h}
+          </span>
+        ))}
+      </div>
+
+      {/* completed sets */}
+      {we.sets.map((s, idx) => (
+        <div key={s.id}>
+          <div className={`${GRID} py-1 opacity-55`}>
+            <span className="grid h-7 w-7 place-items-center rounded-[6px] bg-chip font-mono text-[12px]">
+              {idx + 1}
+            </span>
+            <span className="font-mono text-[12px] text-muted">{prevFor(idx)}</span>
+            <span className="text-center font-mono text-[13px]">{s.segments[0].weightKg}</span>
+            <span className="text-center font-mono text-[13px]">{s.segments[0].reps}</span>
+            <button className="text-center text-pos" onClick={() => deleteSet(s.id)} aria-label={`set ${idx + 1} done`}>
+              ✓
+            </button>
+          </div>
+          {s.segments.slice(1).map((seg, si) => (
+            <div key={si} className={`${GRID} py-0.5 opacity-55`}>
+              <span className="text-right font-mono text-[12px] text-lime">↳</span>
+              <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-label">
+                SEGMENT {si + 2}{s.type === 'warmup' ? '' : ' · DROP'}
               </span>
-              <button className="pl-3 text-ink-dim" onClick={() => deleteSet(s.id)} aria-label="delete set">
-                ✕
-              </button>
+              <span className="text-center font-mono text-[13px]">{seg.weightKg}</span>
+              <span className="text-center font-mono text-[13px]">{seg.reps}</span>
+              <span />
             </div>
           ))}
+          {(s.type !== 'working' || s.rpe != null) && (
+            <div className="pb-1 pl-11 font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">
+              {s.type !== 'working' && s.type}
+              {s.rpe != null && ` rpe ${s.rpe}`}
+            </div>
+          )}
+          {idx < we.sets.length - 1 && <RestDivider seconds={restSeconds} />}
         </div>
-      )}
+      ))}
 
-      {pendingSegments.length > 0 && (
-        <div className="mt-2 rounded-lg border border-warn/40 px-3 py-1.5 text-sm text-warn">
-          this set so far: {pendingSegments.map((s) => `${s.weightKg}×${s.reps}`).join(' + ')} + …
-        </div>
-      )}
+      {/* active set editor */}
+      {active && (
+        <>
+          {done > 0 && <RestDivider seconds={restSeconds} />}
+          <div className="rounded-[10px] border border-lime/35 bg-lime/3 p-1.5">
+            <div className={GRID}>
+              <span className="grid h-7 w-7 place-items-center rounded-[6px] bg-lime font-mono text-[12px] font-semibold text-on-lime">
+                {done + 1}
+              </span>
+              <span className="font-mono text-[12px] text-muted">{prevFor(done)}</span>
+              {inputCell(weight, setWeight, 'kg')}
+              {inputCell(reps, setReps, 'reps')}
+              <button
+                onClick={logSet}
+                aria-label="log set"
+                className="grid h-9 w-8 place-items-center rounded-[7px] bg-lime text-[15px] font-bold text-on-lime active:opacity-70"
+              >
+                ✓
+              </button>
+            </div>
+            {pendingSegments.map((seg, si) => (
+              <div key={si} className={`${GRID} mt-1`}>
+                <span className="text-right font-mono text-[12px] text-lime">↳</span>
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-label">
+                  SEGMENT {si + 1}
+                </span>
+                <span className="text-center font-mono text-[13px]">{seg.weightKg}</span>
+                <span className="text-center font-mono text-[13px]">{seg.reps}</span>
+                <button
+                  className="text-center text-danger"
+                  aria-label="remove segment"
+                  onClick={() => setPendingSegments(pendingSegments.filter((_, x) => x !== si))}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <div className="mt-2 flex items-center gap-2 pl-9">
+              <button
+                onClick={bankSegment}
+                className="rounded-[7px] border border-dashed border-lime/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-lime active:opacity-70"
+              >
+                ＋ segment (weight change)
+              </button>
+              <button
+                onClick={() => setShowRpe((v) => !v)}
+                className={`rounded-[7px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] ${showRpe ? 'border-lime/40 text-lime' : 'border-white/12 text-muted'}`}
+              >
+                RPE
+              </button>
+              {showRpe && (
+                <input
+                  inputMode="decimal"
+                  aria-label="rpe"
+                  value={rpe}
+                  onChange={(e) => setRpe(e.target.value)}
+                  placeholder="8"
+                  className="h-7 w-11 rounded-[7px] border border-white/12 bg-bg text-center font-mono text-[12px]"
+                />
+              )}
+              <button
+                onClick={() => setWarmup((v) => !v)}
+                className={`rounded-[7px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] ${warmup ? 'border-warn/50 text-warn' : 'border-white/12 text-muted'}`}
+              >
+                warm-up
+              </button>
+            </div>
+          </div>
 
-      <div className="mt-3 flex items-end justify-center gap-4">
-        <Stepper label="kg" value={weight} onChange={setWeight} step={2.5} />
-        <Stepper label="reps" value={reps} onChange={setReps} step={1} min={1} />
-      </div>
+          {/* upcoming target rows */}
+          {(we.targetSets ?? []).slice(done + 1).map((t, ti) => (
+            <div key={ti} className={`${GRID} py-1 opacity-45`}>
+              <span className="grid h-7 w-7 place-items-center rounded-[6px] bg-chip font-mono text-[12px]">
+                {done + 2 + ti}
+              </span>
+              <span className="font-mono text-[12px] text-muted">{prevFor(done + 1 + ti)}</span>
+              <span className="text-center font-mono text-[13px] text-faint">{t.weightKg ?? '—'}</span>
+              <span className="text-center font-mono text-[13px] text-faint">{t.reps}</span>
+              <span className="text-center text-faint">✓</span>
+            </div>
+          ))}
 
-      <div className="mt-2 flex items-center justify-center gap-2">
-        {SET_TYPES.map((t) => (
           <button
-            key={t.key}
-            onClick={() => setType(t.key)}
-            className={`rounded-full px-2.5 py-1 text-xs ${
-              type === t.key ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-ink-dim'
-            }`}
+            onClick={() =>
+              onChange({
+                ...we,
+                targetSets: [
+                  ...(we.targetSets ?? []),
+                  we.targetSets?.[we.targetSets.length - 1] ?? {
+                    weightKg: parseFloat(weight) || null,
+                    reps: parseInt(reps, 10) || 8,
+                  },
+                ],
+              })
+            }
+            className="mt-2 w-full rounded-[9px] border border-white/8 bg-card py-2 text-[12.5px] text-muted active:opacity-70"
           >
-            {t.label}
+            ＋ Add set ({fmtRest(restSeconds)})
           </button>
-        ))}
-        <button
-          onClick={() => setRpe(rpe === null ? 8 : null)}
-          className={`rounded-full px-2.5 py-1 text-xs ${
-            rpe !== null ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-ink-dim'
-          }`}
-        >
-          RPE
-        </button>
-        {rpe !== null && (
-          <input
-            type="number"
-            inputMode="decimal"
-            className="h-8 w-12 rounded-lg bg-surface-2 text-center text-sm"
-            value={rpe}
-            min={1}
-            max={10}
-            step={0.5}
-            onChange={(e) => setRpe(parseFloat(e.target.value) || 8)}
-          />
-        )}
-      </div>
+        </>
+      )}
+      <div className="mt-3 border-b border-white/6" />
+      <span className="sr-only">{targetCount}</span>
+    </div>
+  )
+}
 
-      <div className="mt-3 flex gap-2">
-        <Btn variant="ghost" className="flex-1" onClick={bankSegment}>
-          ＋ Weight change
-        </Btn>
-        <Btn className="flex-[2]" onClick={logSet}>
-          Log set{pendingSegments.length > 0 ? ` (${pendingSegments.length + 1} seg)` : ''}
-        </Btn>
-      </div>
-    </Card>
+function RestDivider({ seconds }: { seconds: number }) {
+  return (
+    <div className="my-1 flex items-center gap-2 pl-9">
+      <div className="h-[2px] flex-1 rounded bg-chip" />
+      <span className="font-mono text-[10px] text-teal">{fmtRest(seconds)}</span>
+      <div className="h-[2px] flex-1 rounded bg-chip" />
+    </div>
   )
 }

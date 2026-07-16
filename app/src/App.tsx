@@ -12,6 +12,8 @@ import { Presets } from './screens/Presets'
 import { PresetEdit } from './screens/PresetEdit'
 import { Coach } from './screens/Coach'
 import { AICreate } from './screens/AICreate'
+import { Trends } from './screens/Trends'
+import { Summary } from './screens/Summary'
 import { CycleSetup } from './screens/CycleSetup'
 import { ProfileScreen } from './screens/Profile'
 import { TabBar } from './components/TabBar'
@@ -43,6 +45,8 @@ export default function App() {
           <Route path="/presets/:id" element={<PresetEdit />} />
           <Route path="/coach" element={<Coach />} />
           <Route path="/create" element={<AICreate />} />
+          <Route path="/trends" element={<Trends />} />
+          <Route path="/summary" element={<Summary />} />
           <Route path="/cycle" element={<CycleSetup />} />
           <Route path="/profile" element={<ProfileScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />

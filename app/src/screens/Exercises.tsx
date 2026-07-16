@@ -1,97 +1,158 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { repo } from '../lib/repo'
+import { rmSeries } from '../lib/rm'
+import { lastSession } from '../lib/workout'
 import { useStore, useUid } from '../store'
-import type { Equipment, MuscleGroup } from '../types'
-import { Btn, Card, EmptyState, Screen } from '../components/ui'
+import type { Equipment, Exercise, MuscleGroup } from '../types'
+import { Btn, Card, Chip, EmptyState, Eyebrow, Screen } from '../components/ui'
+import { Sparkline } from '../components/Sparkline'
 
 export function Exercises() {
-  const { exerciseList } = useStore()
+  const { exerciseList, workouts } = useStore()
   const uid = useUid()
   const [q, setQ] = useState('')
   const [muscle, setMuscle] = useState('')
   const [adding, setAdding] = useState(false)
 
+  const completed = useMemo(() => workouts.filter((w) => w.status === 'completed'), [workouts])
+
   const muscles = useMemo(
     () => [...new Set(exerciseList.flatMap((e) => e.primaryMuscles))].sort(),
     [exerciseList],
   )
+
+  const stats = useMemo(() => {
+    const map = new Map<string, { series: number[]; e1rm: number | null; lastUsed: number | null }>()
+    for (const e of exerciseList) {
+      const series = rmSeries(completed, e.id)
+      const last = lastSession(completed, e.id)
+      map.set(e.id, {
+        series: series.slice(-10).map((p) => p.e1rm),
+        e1rm: series.length ? series[series.length - 1].e1rm : null,
+        lastUsed: last ? last.workout.startedAt : null,
+      })
+    }
+    return map
+  }, [exerciseList, completed])
+
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    return exerciseList.filter(
+    const list = exerciseList.filter(
       (e) =>
         (!needle || e.name.toLowerCase().includes(needle)) &&
         (!muscle || e.primaryMuscles.includes(muscle as MuscleGroup)),
     )
-  }, [exerciseList, q, muscle])
-
-  const addCustom = async (name: string, muscleGroups: MuscleGroup[], equipment: Equipment) => {
-    await repo.saveCustomExercise(uid, {
-      id: `custom-${crypto.randomUUID()}`,
-      name,
-      primaryMuscles: muscleGroups,
-      secondaryMuscles: [],
-      equipment,
-      instructions: [],
-      images: [],
-      isCustom: true,
-    })
-    setAdding(false)
-  }
+    // design: sorted by last used, unused after
+    return [...list].sort(
+      (a, b) => (stats.get(b.id)?.lastUsed ?? 0) - (stats.get(a.id)?.lastUsed ?? 0),
+    )
+  }, [exerciseList, q, muscle, stats])
 
   return (
     <Screen
-      title="Exercises"
+      title="Library"
       action={
-        <Btn variant="ghost" onClick={() => setAdding(true)}>
+        <button className="text-[13px] font-medium text-lime active:opacity-70" onClick={() => setAdding(true)}>
           ＋ Custom
-        </Btn>
+        </button>
       }
     >
       <input
-        placeholder="Search…"
+        placeholder={`⌕ Search ${exerciseList.length} exercises…`}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        className="mb-3 h-11 w-full rounded-xl bg-surface-2 px-3 outline-none"
+        className="mb-3 h-11 w-full rounded-[10px] border border-white/8 bg-card px-3.5 text-[13.5px] outline-none placeholder:text-label focus:border-lime/40"
       />
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-        {['', ...muscles].map((m) => (
-          <button
-            key={m || 'all'}
-            onClick={() => setMuscle(m)}
-            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs ${
-              muscle === m ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-ink-dim'
-            }`}
-          >
-            {m || 'all'}
-          </button>
-        ))}
+        {muscle && (
+          <Chip active onClick={() => setMuscle('')}>
+            {muscle} ✕
+          </Chip>
+        )}
+        {muscles
+          .filter((m) => m !== muscle)
+          .map((m) => (
+            <Chip key={m} onClick={() => setMuscle(m)}>
+              {m}
+            </Chip>
+          ))}
       </div>
 
-      {results.map((e) => (
-        <Link key={e.id} to={`/exercises/${e.id}`}>
-          <Card className="mb-2 flex items-center gap-3">
-            {e.images[0] ? (
-              <img src={e.images[0]} alt="" loading="lazy" className="h-12 w-12 rounded-lg bg-white object-cover" />
-            ) : (
-              <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface-2">💪</div>
-            )}
-            <div className="flex-1">
-              <div className="font-medium">
-                {e.name}
-                {e.isCustom && <span className="ml-2 text-xs text-ink-dim">(custom)</span>}
+      <Eyebrow className="mb-1">
+        {muscle ? `${muscle.toUpperCase()} · ` : ''}
+        {results.length} EXERCISES · SORTED BY LAST USED
+      </Eyebrow>
+
+      {results.map((e, i) => {
+        const s = stats.get(e.id)
+        return (
+          <Link key={e.id} to={`/exercises/${e.id}`}>
+            <div className={`flex items-center gap-3 py-2.5 ${i > 0 ? 'border-t border-white/6' : ''}`}>
+              {e.images[0] ? (
+                <img src={e.images[0]} alt="" loading="lazy" className="h-11 w-11 rounded-[8px] bg-white object-cover" />
+              ) : (
+                <div
+                  className="grid h-11 w-11 place-items-center rounded-[8px] text-[11px] text-label"
+                  style={{
+                    background: 'repeating-linear-gradient(45deg,#1b1f26 0 4px,#14171c 4px 8px)',
+                  }}
+                >
+                  ▶
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-medium">
+                  {e.name}
+                  {e.isCustom && (
+                    <span className="ml-2 rounded bg-lime/12 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] text-lime">
+                      custom
+                    </span>
+                  )}
+                </div>
+                <div className="truncate text-[11.5px] text-label">
+                  {e.primaryMuscles.join(', ')} · {e.equipment}
+                  {s?.lastUsed &&
+                    ` · used ${new Date(s.lastUsed).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
+                </div>
               </div>
-              <div className="text-xs text-ink-dim">
-                {e.primaryMuscles.join(', ')} · {e.equipment}
+              <div className="flex flex-col items-end gap-0.5">
+                {s && s.series.length >= 2 ? (
+                  <>
+                    <Sparkline values={s.series} />
+                    <span className="font-mono text-[10px] text-muted">e1RM {s.e1rm!.toFixed(1)}</span>
+                  </>
+                ) : (
+                  <span className="font-mono text-[10px] text-faint">
+                    {s?.lastUsed ? `e1RM ${s.e1rm?.toFixed(1) ?? '—'}` : 'no data'}
+                  </span>
+                )}
               </div>
             </div>
-            <span className="text-ink-dim">→</span>
-          </Card>
-        </Link>
-      ))}
+          </Link>
+        )
+      })}
       {!results.length && <EmptyState>No exercises match.</EmptyState>}
 
-      {adding && <AddCustom onCancel={() => setAdding(false)} onAdd={addCustom} muscles={muscles} />}
+      {adding && (
+        <AddCustom
+          onCancel={() => setAdding(false)}
+          muscles={muscles}
+          onAdd={async (name, muscleGroups, equipment) => {
+            await repo.saveCustomExercise(uid, {
+              id: `custom-${crypto.randomUUID()}`,
+              name,
+              primaryMuscles: muscleGroups,
+              secondaryMuscles: [],
+              equipment,
+              instructions: [],
+              images: [],
+              isCustom: true,
+            } satisfies Exercise)
+            setAdding(false)
+          }}
+        />
+      )}
     </Screen>
   )
 }
@@ -113,41 +174,31 @@ function AddCustom({
   return (
     <div className="fixed inset-0 z-30 grid place-items-center bg-black/70 p-6">
       <Card className="max-h-[85dvh] w-full overflow-y-auto">
-        <h2 className="mb-3 text-lg font-semibold">Custom exercise</h2>
+        <h2 className="mb-3 font-condensed text-xl font-bold">Custom exercise</h2>
         <input
           placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mb-3 h-11 w-full rounded-xl bg-surface-2 px-3"
+          className="mb-3 h-11 w-full rounded-[9px] border border-white/10 bg-chip px-3 text-[13.5px]"
         />
-        <div className="mb-1 text-xs uppercase tracking-wide text-ink-dim">Primary muscles</div>
-        <div className="mb-3 flex flex-wrap gap-2">
+        <Eyebrow className="mb-1.5">PRIMARY MUSCLES</Eyebrow>
+        <div className="mb-3 flex flex-wrap gap-1.5">
           {muscles.map((m) => (
-            <button
+            <Chip
               key={m}
-              onClick={() =>
-                setSelected((s) => (s.includes(m) ? s.filter((x) => x !== m) : [...s, m]))
-              }
-              className={`rounded-full px-3 py-1.5 text-xs ${
-                selected.includes(m) ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-ink-dim'
-              }`}
+              active={selected.includes(m)}
+              onClick={() => setSelected((s) => (s.includes(m) ? s.filter((x) => x !== m) : [...s, m]))}
             >
               {m}
-            </button>
+            </Chip>
           ))}
         </div>
-        <div className="mb-1 text-xs uppercase tracking-wide text-ink-dim">Equipment</div>
-        <div className="mb-4 flex flex-wrap gap-2">
+        <Eyebrow className="mb-1.5">EQUIPMENT</Eyebrow>
+        <div className="mb-4 flex flex-wrap gap-1.5">
           {equipments.map((eq) => (
-            <button
-              key={eq}
-              onClick={() => setEquipment(eq)}
-              className={`rounded-full px-3 py-1.5 text-xs ${
-                equipment === eq ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-ink-dim'
-              }`}
-            >
+            <Chip key={eq} active={equipment === eq} onClick={() => setEquipment(eq)}>
               {eq}
-            </button>
+            </Chip>
           ))}
         </div>
         <div className="flex gap-2">

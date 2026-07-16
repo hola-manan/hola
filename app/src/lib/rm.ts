@@ -74,3 +74,16 @@ export function weightForReps(e1rm: number, reps: number, pct = 1): number {
   const target = (e1rm * pct) / (1 + reps / 30)
   return Math.round(target / 0.25) * 0.25
 }
+
+/** Latest session e1RM vs the previous session's, as a % change. */
+export function e1rmDelta(
+  workouts: Workout[],
+  exerciseId: string,
+): { current: number; deltaPct: number | null } | null {
+  const series = rmSeries(workouts, exerciseId)
+  if (!series.length) return null
+  const current = series[series.length - 1].e1rm
+  if (series.length < 2) return { current, deltaPct: null }
+  const prev = series[series.length - 2].e1rm
+  return { current, deltaPct: ((current - prev) / prev) * 100 }
+}

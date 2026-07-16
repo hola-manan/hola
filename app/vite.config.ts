@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'Hola Gym',
         short_name: 'Hola Gym',
         description: 'Personal gym tracking and insights',
-        theme_color: '#0a0a0a',
-        background_color: '#0a0a0a',
+        theme_color: '#0b0d10',
+        background_color: '#0b0d10',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

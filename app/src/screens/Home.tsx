@@ -2,14 +2,37 @@ import { Link, useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
 import { currentDayLabel, missedDays, shiftToToday, skipDay } from '../lib/cycle'
 import { emptyWorkout, workoutFromPreset } from '../lib/workout'
-import { workoutVolume, workingSetCount } from '../lib/volume'
+import { volumeVsTargets, weekStartMs } from '../lib/targets'
 import { useStore, useUid } from '../store'
-import { isRestDay } from '../types'
-import { Btn, Card, EmptyState, Screen } from '../components/ui'
+import { isRestDay, type Cycle } from '../types'
+import { Btn, Card, Eyebrow, ProgressRow, SunkenCard } from '../components/ui'
 import { ReadinessCard } from '../components/ReadinessCard'
 
+/** 3-letter mono codes for the cycle strip, per the design (PSH · PLL · LEG …). */
+const DAY_CODES: Record<string, string> = {
+  push: 'PSH',
+  pull: 'PLL',
+  legs: 'LEG',
+  rest: 'RST',
+  upper: 'UPR',
+  lower: 'LWR',
+  'full body': 'FBD',
+  arms: 'ARM',
+  back: 'BCK',
+  chest: 'CHS',
+  shoulders: 'SHO',
+}
+const codeFor = (label: string) =>
+  DAY_CODES[label.trim().toLowerCase()] ?? label.replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase()
+
+function chipDate(cycle: Cycle, index: number): Date {
+  const base = new Date(`${cycle.pointerDate}T00:00:00`)
+  base.setDate(base.getDate() + (index - cycle.pointer))
+  return base
+}
+
 export function Home() {
-  const { cycle, presets, workouts, activeWorkout } = useStore()
+  const { cycle, presets, workouts, activeWorkout, profile, exercises } = useStore()
   const uid = useUid()
   const navigate = useNavigate()
 
@@ -18,7 +41,14 @@ export function Home() {
   const dayPresets = dayLabel
     ? presets.filter((p) => p.cycleDay?.toLowerCase() === dayLabel.toLowerCase())
     : []
-  const recent = workouts.filter((w) => w.status === 'completed').slice(0, 3)
+  const completed = workouts.filter((w) => w.status === 'completed')
+  const lastSameDay = dayLabel
+    ? completed.find((w) => w.cycleDay?.toLowerCase() === dayLabel.toLowerCase())
+    : undefined
+  const latestBw = profile.bodyweight[profile.bodyweight.length - 1]
+  const volumeRows = cycle
+    ? volumeVsTargets(cycle, completed, exercises, weekStartMs()).slice(0, 5)
+    : []
 
   const start = async (presetId?: string) => {
     const preset = presets.find((p) => p.id === presetId)
@@ -29,41 +59,75 @@ export function Home() {
     navigate('/workout')
   }
 
+  const today = new Date()
+  const eyebrowDate = today
+    .toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+    .toUpperCase()
+
   return (
-    <Screen title="Hola Gym">
-      <ReadinessCard />
-      {cycle && dayLabel ? (
-        <Card className="mb-4">
-          <div className="text-xs uppercase tracking-wide text-ink-dim">
-            Day {(cycle.pointer % cycle.days.length) + 1} of {cycle.days.length} ·{' '}
-            <Link to="/cycle" className="underline">
-              edit cycle
-            </Link>
-          </div>
-          <div className="mt-1 text-3xl font-bold">
-            {isRestDay(dayLabel) ? 'Rest day 😌' : `${dayLabel} day`}
-          </div>
-          {missed > 1 && !isRestDay(dayLabel) && (
-            <div className="mt-3 rounded-xl bg-surface-2 p-3 text-sm">
-              <p className="mb-2">
-                {dayLabel} has been waiting {missed} days. Do it today, or skip it?
-              </p>
-              <div className="flex gap-2">
-                <Btn onClick={() => repo.saveCycle(uid, shiftToToday(cycle))}>
-                  Do {dayLabel} today
-                </Btn>
-                <Btn variant="ghost" onClick={() => repo.saveCycle(uid, skipDay(cycle))}>
-                  Skip it
-                </Btn>
-              </div>
-            </div>
+    <div className="px-5 pt-8">
+      {/* eyebrow row: date · cycle codes | bodyweight + profile */}
+      <div className="flex items-center justify-between">
+        <Eyebrow>
+          {eyebrowDate}
+          {cycle && ` · CYCLE ${cycle.days.map(codeFor).filter((c, i, a) => a.indexOf(c) === i).join('·')}`}
+        </Eyebrow>
+        <Link to="/profile" className="flex items-center gap-2" aria-label="profile">
+          {latestBw && (
+            <span className="font-mono text-[10px] tracking-[0.12em] text-label">
+              {latestBw.weightKg} KG
+            </span>
           )}
-        </Card>
+          <svg viewBox="0 0 20 20" className="h-4 w-4 text-label" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="10" cy="6.5" r="3.2" />
+            <path d="M3.5 17 C4.5 13.5 7 12 10 12 C13 12 15.5 13.5 16.5 17" />
+          </svg>
+        </Link>
+      </div>
+
+      {cycle && dayLabel ? (
+        <>
+          <h1 className="mt-3 font-condensed text-[46px] font-bold leading-none">
+            {isRestDay(dayLabel) ? 'Rest Day' : `${dayLabel} Day`}
+          </h1>
+          <p className="mt-1.5 text-[13px] text-muted">
+            Day {(cycle.pointer % cycle.days.length) + 1} of {cycle.days.length}
+            {lastSameDay &&
+              ` · last ${dayLabel} was ${new Date(lastSameDay.startedAt).toLocaleDateString(undefined, { weekday: 'short' })}, ${Math.max(1, Math.round((Date.now() - lastSameDay.startedAt) / 86_400_000))} days ago`}
+          </p>
+
+          {/* cycle strip — tap to edit */}
+          <Link to="/cycle" className="mt-4 flex gap-1">
+            {cycle.days.map((d, i) => {
+              const isToday = i === cycle.pointer % cycle.days.length
+              const done = i < cycle.pointer % cycle.days.length
+              return (
+                <span
+                  key={i}
+                  className={`flex flex-1 flex-col items-center gap-0.5 rounded-md py-1.5 font-mono text-[10px] ${
+                    isToday
+                      ? 'bg-lime font-semibold text-on-lime'
+                      : 'border border-white/8 bg-card'
+                  } ${!isToday && (done ? 'text-pos' : isRestDay(d) ? 'text-faint' : 'text-label')}`}
+                >
+                  {codeFor(d)}
+                  <span className={`text-[8px] tracking-[0.1em] ${isToday ? 'text-on-lime/70' : 'text-faint'}`}>
+                    {isToday
+                      ? 'TODAY'
+                      : done
+                        ? '✓'
+                        : chipDate(cycle, i).toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}
+                  </span>
+                </span>
+              )
+            })}
+          </Link>
+        </>
       ) : (
-        <Card className="mb-4">
-          <p className="text-sm text-ink-dim">
-            No training cycle set up yet. Define your split (e.g. Push / Pull / Legs / Rest) and
-            the app will tell you what today is.
+        <Card className="mt-4">
+          <p className="text-[13px] text-muted">
+            No training cycle yet. Define your split (e.g. Push / Pull / Legs / Rest) and the app
+            will tell you what today is.
           </p>
           <Btn className="mt-3" onClick={() => navigate('/cycle')}>
             Set up cycle
@@ -71,56 +135,86 @@ export function Home() {
         </Card>
       )}
 
-      {!activeWorkout && (
-        <div className="mb-4 flex flex-col gap-2">
-          {dayLabel && !isRestDay(dayLabel) && (
-            <Btn className="py-3.5 text-base" onClick={() => navigate('/create')}>
-              ✨ Create today's workout (AI)
-            </Btn>
-          )}
-          {dayPresets.map((p) => (
-            <Btn key={p.id} variant="ghost" onClick={() => start(p.id)} className="py-3.5 text-base">
-              Start {p.name}
-            </Btn>
-          ))}
-          <Btn variant="ghost" className="py-3.5 text-base" onClick={() => start()}>
-            Start empty workout
-          </Btn>
+      <div className="mt-4">
+        <ReadinessCard />
+      </div>
+
+      {cycle && dayLabel && missed > 1 && !isRestDay(dayLabel) && (
+        <Card className="mt-3">
+          <Eyebrow className="mb-1.5">MISSED A DAY?</Eyebrow>
+          <p className="mb-2.5 text-[13px] text-body">
+            {dayLabel} has been waiting {missed} days.
+          </p>
           <div className="flex gap-2">
-            <Btn variant="ghost" className="flex-1" onClick={() => navigate('/bulk')}>
-              Add past workout
+            <Btn className="flex-1" onClick={() => repo.saveCycle(uid, shiftToToday(cycle))}>
+              Shift — do it today
             </Btn>
-            <Btn variant="ghost" className="flex-1" onClick={() => navigate('/presets')}>
-              Presets
+            <Btn variant="ghost" className="flex-1" onClick={() => repo.saveCycle(uid, skipDay(cycle))}>
+              Skip — move on
             </Btn>
+          </div>
+        </Card>
+      )}
+
+      {!activeWorkout && (
+        <div className="mt-4 flex flex-col gap-2">
+          {dayLabel && !isRestDay(dayLabel) && (
+            <button
+              onClick={() => navigate('/create')}
+              className="flex items-center justify-between rounded-xl bg-lime p-4 text-left active:opacity-80"
+            >
+              <span>
+                <span className="block text-[15px] font-semibold text-on-lime">
+                  ✦ Create today's workout
+                </span>
+                <span className="mt-0.5 block text-[11.5px] text-on-lime/70">
+                  AI draft · review before starting
+                </span>
+              </span>
+              <span className="text-on-lime">→</span>
+            </button>
+          )}
+          <div className="flex gap-2">
+            {dayPresets.slice(0, 1).map((p) => (
+              <Btn key={p.id} variant="ghost" className="flex-1 py-3" onClick={() => start(p.id)}>
+                Preset · {p.name}
+              </Btn>
+            ))}
+            <Btn variant="ghost" className="flex-1 py-3" onClick={() => start()}>
+              Empty workout
+            </Btn>
+          </div>
+          <div className="flex justify-between px-1">
+            <button className="text-[12px] text-muted underline-offset-4 active:underline" onClick={() => navigate('/bulk')}>
+              ＋ Add past workout (bulk entry)
+            </button>
+            <button className="text-[12px] text-muted underline-offset-4 active:underline" onClick={() => navigate('/presets')}>
+              Presets →
+            </button>
           </div>
         </div>
       )}
 
-      <h2 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-ink-dim">
-        Recent workouts
-      </h2>
-      {recent.length ? (
-        recent.map((w) => (
-          <Link key={w.id} to={`/history/${w.id}`}>
-            <Card className="mb-2 flex items-center justify-between">
-              <div>
-                <div className="font-medium">
-                  {w.name ?? w.cycleDay ?? 'Workout'}
-                  {w.cycleDay && w.name ? ` · ${w.cycleDay}` : ''}
-                </div>
-                <div className="text-xs text-ink-dim">
-                  {new Date(w.startedAt).toLocaleDateString()} · {workingSetCount(w)} sets ·{' '}
-                  {Math.round(workoutVolume(w)).toLocaleString()} kg
-                </div>
-              </div>
-              <span className="text-ink-dim">→</span>
-            </Card>
-          </Link>
-        ))
-      ) : (
-        <EmptyState>No workouts yet — start one above.</EmptyState>
+      {activeWorkout && (
+        <SunkenCard className="mt-4">
+          <p className="text-[13px] text-body">Workout in progress — resume from the bar below.</p>
+        </SunkenCard>
       )}
-    </Screen>
+
+      {volumeRows.length > 0 && (
+        <div className="mt-6">
+          <Eyebrow className="mb-1">VOLUME VS CYCLE TARGET · SETS/WK</Eyebrow>
+          {volumeRows.map((r) => (
+            <ProgressRow
+              key={r.muscle}
+              label={r.muscle}
+              value={`${r.pct}%`}
+              pct={r.pct}
+              behind={r.behind}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

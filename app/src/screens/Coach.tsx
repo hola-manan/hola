@@ -1,141 +1,114 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ai, type ChatMessage, type WeeklySummary } from '../lib/ai'
-import { aiSubscriptions } from '../lib/repo'
-import { useStore, useUid } from '../store'
-import { Btn, Card, Screen } from '../components/ui'
+import { Link } from 'react-router-dom'
+import { ai, type ChatMessage } from '../lib/ai'
+import { useStore } from '../store'
+import { Eyebrow } from '../components/ui'
+
+const SUGGESTED = [
+  'Why is my bench stalling?',
+  'Am I neglecting any muscles?',
+  'What should I focus on this month?',
+]
 
 export function Coach() {
-  const uid = useUid()
   const { workouts } = useStore()
-  const navigate = useNavigate()
-  const [summaries, setSummaries] = useState<WeeklySummary[]>([])
-  const [summaryBusy, setSummaryBusy] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
-  const [chatBusy, setChatBusy] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => aiSubscriptions.summaries(uid, setSummaries), [uid])
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, chatBusy])
+  }, [messages, busy])
 
-  const refreshSummary = async () => {
-    setSummaryBusy(true)
-    setError('')
-    try {
-      await ai.generateWeeklySummary({})
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setSummaryBusy(false)
-    }
-  }
+  const completedCount = workouts.filter((w) => w.status === 'completed').length
 
-  const send = async () => {
-    const text = input.trim()
-    if (!text || chatBusy) return
+  const send = async (text0?: string) => {
+    const text = (text0 ?? input).trim()
+    if (!text || busy) return
     const next: ChatMessage[] = [...messages, { role: 'user', text }]
     setMessages(next)
     setInput('')
-    setChatBusy(true)
+    setBusy(true)
     setError('')
     try {
       const res = await ai.coachChat({ messages: next })
       setMessages([...next, { role: 'assistant', text: res.text }])
     } catch (e) {
       setError((e as Error).message)
-      setMessages(messages) // roll back so the user can retry
+      setMessages(messages)
       setInput(text)
     } finally {
-      setChatBusy(false)
+      setBusy(false)
     }
   }
 
-  const latest = summaries[0]
-  const hasHistory = workouts.some((w) => w.status === 'completed')
-
   return (
-    <Screen title="Coach">
-      <Card className="mb-3">
-        <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-dim">
-            This week
-          </h2>
-          <Btn variant="ghost" disabled={summaryBusy || !hasHistory} onClick={refreshSummary}>
-            {summaryBusy ? 'Thinking…' : latest ? 'Refresh' : 'Generate'}
-          </Btn>
-        </div>
-        {latest ? (
-          <p className="text-sm leading-relaxed">{latest.text}</p>
-        ) : (
-          <p className="text-sm text-ink-dim">
-            {hasHistory
-              ? 'Get a weekly balance check across your muscle groups.'
-              : 'Log some workouts first, then the coach has something to say.'}
-          </p>
-        )}
-      </Card>
+    <div className="flex min-h-dvh flex-col px-5 pb-32 pt-8">
+      <div className="flex items-end justify-between">
+        <h1 className="font-condensed text-[32px] font-bold leading-none">Coach</h1>
+        <Link to="/summary" className="font-mono text-[11px] uppercase tracking-[0.08em] text-teal">
+          Weekly summary →
+        </Link>
+      </div>
+      <Eyebrow className="mt-1.5">GROUNDED IN {completedCount} WORKOUTS</Eyebrow>
 
-      <Card className="mb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-dim">
-              AI workout
-            </h2>
-            <p className="text-xs text-ink-dim">Draft today's session for you</p>
-          </div>
-          <Btn onClick={() => navigate('/create')}>Create</Btn>
-        </div>
-      </Card>
-
-      <h2 className="mb-2 mt-5 text-sm font-semibold uppercase tracking-wide text-ink-dim">
-        Ask the coach
-      </h2>
-      <div className="mb-3 flex flex-col gap-2">
+      <div className="mt-5 flex flex-1 flex-col gap-2">
         {messages.length === 0 && (
-          <div className="flex flex-wrap gap-2">
-            {['Why is my bench stalling?', 'Am I neglecting any muscles?', 'What should I focus on this month?'].map(
-              (q) => (
-                <button
-                  key={q}
-                  className="rounded-full bg-surface-2 px-3 py-1.5 text-xs text-ink-dim"
-                  onClick={() => setInput(q)}
-                >
-                  {q}
-                </button>
-              ),
-            )}
+          <div className="flex flex-wrap gap-1.5">
+            {SUGGESTED.map((q) => (
+              <button
+                key={q}
+                className="rounded-full border border-white/10 bg-card px-3 py-1.5 text-[12px] text-muted active:opacity-70"
+                onClick={() => send(q)}
+              >
+                {q}
+              </button>
+            ))}
           </div>
         )}
         {messages.map((m, i) => (
           <div
             key={i}
-            className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-              m.role === 'user' ? 'self-end bg-accent text-accent-ink' : 'self-start bg-surface'
+            className={`max-w-[85%] px-3.5 py-2.5 text-[13px] leading-relaxed ${
+              m.role === 'user'
+                ? 'self-end rounded-[12px_12px_3px_12px] bg-lime text-on-lime'
+                : 'self-start rounded-[12px_12px_12px_3px] border border-white/8 bg-card text-body'
             }`}
           >
             {m.text}
           </div>
         ))}
-        {chatBusy && <div className="self-start rounded-2xl bg-surface px-3 py-2 text-sm text-ink-dim">…</div>}
+        {busy && (
+          <div className="self-start rounded-[12px_12px_12px_3px] border border-white/8 bg-card px-3.5 py-2.5 font-mono text-[13px] text-label">
+            …
+          </div>
+        )}
         <div ref={endRef} />
       </div>
-      {error && <p className="mb-2 text-xs text-danger">{error}</p>}
-      <div className="flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
-          placeholder="Ask anything about your training…"
-          className="h-11 flex-1 rounded-xl bg-surface-2 px-3 text-sm outline-none focus:ring-1 focus:ring-accent"
-        />
-        <Btn disabled={!input.trim() || chatBusy} onClick={send}>
-          Send
-        </Btn>
+
+      {error && <p className="mt-2 text-[12px] text-danger">{error}</p>}
+
+      <div className="fixed inset-x-0 bottom-14 z-10 mx-auto max-w-lg border-t border-white/8 bg-sunken px-4 pb-3 pt-2.5">
+        <div className="flex items-center gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && send()}
+            placeholder="Ask about your training…"
+            className="h-10 flex-1 rounded-[9px] border border-white/10 bg-card px-3 text-[13px] outline-none placeholder:text-label focus:border-lime/40"
+          />
+          <button
+            onClick={() => send()}
+            disabled={!input.trim() || busy}
+            aria-label="send"
+            className="grid h-10 w-10 place-items-center rounded-[9px] bg-lime text-on-lime disabled:opacity-40"
+          >
+            ↥
+          </button>
+        </div>
       </div>
-    </Screen>
+    </div>
   )
 }
