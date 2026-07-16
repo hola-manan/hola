@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ai, type ChatMessage } from '../lib/ai'
-import { useStore } from '../store'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ai, type ChatMessage, type CoachThread } from '../lib/ai'
+import { aiSubscriptions, repo } from '../lib/repo'
+import { useStore, useUid } from '../store'
 
 const SUGGESTED = [
   'Why is my bench stalling?',
@@ -12,13 +13,44 @@ const SUGGESTED = [
 const MONO = "'IBM Plex Mono',monospace"
 const SANS = "'IBM Plex Sans',system-ui,sans-serif"
 
+/** /coach entry: jump to the newest thread, or a fresh chat when there are none. */
+export function CoachEntry() {
+  const uid = useUid()
+  const [threads, setThreads] = useState<CoachThread[] | null>(null)
+  useEffect(() => aiSubscriptions.coachThreads(uid, setThreads), [uid])
+  if (threads === null) return null
+  return <Navigate to={threads.length ? `/coach/${threads[0].id}` : '/coach/new'} replace />
+}
+
 export function Coach() {
   const { workouts } = useStore()
+  const uid = useUid()
+  const navigate = useNavigate()
+  const { id: routeId } = useParams()
+  const [thread, setThread] = useState<CoachThread | null>(null)
+  const [threadLoaded, setThreadLoaded] = useState(!routeId)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const busyRef = useRef(false)
   const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!routeId) {
+      setThread(null)
+      setMessages([])
+      setThreadLoaded(true)
+      return
+    }
+    setThreadLoaded(false)
+    return aiSubscriptions.coachThread(uid, routeId, (t) => {
+      setThread(t)
+      setThreadLoaded(true)
+      // don't clobber the optimistic message while a reply is in flight
+      if (t && !busyRef.current) setMessages(t.messages)
+    })
+  }, [uid, routeId])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -33,17 +65,35 @@ export function Coach() {
     setMessages(next)
     setInput('')
     setBusy(true)
+    busyRef.current = true
     setError('')
     try {
       const res = await ai.coachChat({ messages: next })
-      setMessages([...next, { role: 'assistant', text: res.text }])
+      const full: ChatMessage[] = [...next, { role: 'assistant', text: res.text }]
+      setMessages(full)
+      const now = Date.now()
+      const saved: CoachThread = {
+        id: thread?.id ?? routeId ?? crypto.randomUUID(),
+        title: thread?.title ?? text.slice(0, 48),
+        messages: full.slice(-100),
+        createdAt: thread?.createdAt ?? now,
+        updatedAt: now,
+      }
+      await repo.saveCoachThread(uid, saved)
+      if (!routeId) navigate(`/coach/${saved.id}`, { replace: true })
     } catch (e) {
       setError((e as Error).message)
       setMessages(messages)
       setInput(text)
     } finally {
       setBusy(false)
+      busyRef.current = false
     }
+  }
+
+  // Stale link (deleted thread) → back to the entry route.
+  if (routeId && threadLoaded && !thread && !busy && !messages.length) {
+    return <Navigate to="/coach" replace />
   }
 
   return (
@@ -52,12 +102,15 @@ export function Coach() {
         <span style={{ fontWeight: 600, fontSize: 15 }}>Coach</span>
         <span style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
           <span style={{ fontFamily: MONO, fontSize: 10, color: '#5a6270', letterSpacing: '.12em' }}>GROUNDED IN {completedCount} WORKOUTS</span>
-          <Link to="/summary" style={{ fontFamily: MONO, fontSize: 10, color: '#57c4cc', letterSpacing: '.12em' }}>
-            WEEKLY →
+          <Link to="/coach/threads" style={{ fontFamily: MONO, fontSize: 10, color: '#57c4cc', letterSpacing: '.12em' }}>
+            THREADS →
+          </Link>
+          <Link to="/coach/new" aria-label="new chat" style={{ fontFamily: MONO, fontSize: 13, color: '#c8f04b', fontWeight: 600, lineHeight: 1 }}>
+            ＋
           </Link>
         </span>
       </div>
-      
+
       <div style={{ flex: 1, overflow: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -101,9 +154,9 @@ export function Coach() {
             …
           </div>
         )}
-        
+
         {error && <div style={{ fontSize: 12, color: '#e0596b', textAlign: 'center', marginTop: 8 }}>{error}</div>}
-        
+
         <div ref={endRef} />
       </div>
 

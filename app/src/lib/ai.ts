@@ -22,6 +22,14 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
 }
+/** A persisted coach conversation (users/{uid}/coachThreads/{id}). */
+export interface CoachThread {
+  id: string
+  title: string // first user message, truncated
+  messages: ChatMessage[]
+  createdAt: number
+  updatedAt: number // drives list ordering
+}
 
 const call =
   <TReq, TRes>(name: string) =>

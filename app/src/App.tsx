@@ -10,7 +10,8 @@ import { Exercises } from './screens/Exercises'
 import { ExerciseDetail } from './screens/ExerciseDetail'
 import { Presets } from './screens/Presets'
 import { PresetEdit } from './screens/PresetEdit'
-import { Coach } from './screens/Coach'
+import { Coach, CoachEntry } from './screens/Coach'
+import { CoachThreads } from './screens/CoachThreads'
 import { AICreate } from './screens/AICreate'
 import { Trends } from './screens/Trends'
 import { Summary } from './screens/Summary'
@@ -43,7 +44,10 @@ export default function App() {
           <Route path="/exercises/:id" element={<ExerciseDetail />} />
           <Route path="/presets" element={<Presets />} />
           <Route path="/presets/:id" element={<PresetEdit />} />
-          <Route path="/coach" element={<Coach />} />
+          <Route path="/coach" element={<CoachEntry />} />
+          <Route path="/coach/new" element={<Coach />} />
+          <Route path="/coach/threads" element={<CoachThreads />} />
+          <Route path="/coach/:id" element={<Coach />} />
           <Route path="/create" element={<AICreate />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/summary" element={<Summary />} />

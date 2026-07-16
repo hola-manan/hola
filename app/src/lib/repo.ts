@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Cycle, Exercise, Preset, Profile, Readiness, Workout, WearableStatus } from '../types'
-import type { Report, WeeklySummary } from './ai'
+import type { CoachThread, Report, WeeklySummary } from './ai'
 
 // Firestore layout (single user):
 //   users/{uid}/workouts/{id}
@@ -47,6 +47,10 @@ export const repo = {
 
   saveReadiness: (uid: string, r: Partial<Readiness> & { date: string }) =>
     setDoc(userDoc(uid, 'readiness', r.date), stripUndefined(r), { merge: true }),
+
+  saveCoachThread: (uid: string, t: CoachThread) =>
+    setDoc(userDoc(uid, 'coachThreads', t.id), stripUndefined(t)),
+  deleteCoachThread: (uid: string, id: string) => deleteDoc(userDoc(uid, 'coachThreads', id)),
 }
 
 export interface Subscriptions {
@@ -85,4 +89,8 @@ export const aiSubscriptions = {
     colData<WeeklySummary>(uid, 'summaries', 'createdAt', cb),
   readinessToday: (uid: string, date: string, cb: (r: Readiness | null) => void) =>
     docData<Readiness>(uid, ['readiness', date], cb),
+  coachThreads: (uid: string, cb: (t: CoachThread[]) => void) =>
+    colData<CoachThread>(uid, 'coachThreads', 'updatedAt', cb),
+  coachThread: (uid: string, id: string, cb: (t: CoachThread | null) => void) =>
+    docData<CoachThread>(uid, ['coachThreads', id], cb),
 }
