@@ -9,7 +9,7 @@ import {
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { auth } from './lib/firebase'
 import { aiSubscriptions, repo, subscriptions } from './lib/repo'
-import { autoAdvanceRestDays, todayStr } from './lib/cycle'
+import { autoAdvanceDaily, todayStr } from './lib/cycle'
 import { EXERCISES } from './data/exercises'
 import type { Cycle, Exercise, Preset, Profile, Readiness, Workout, WearableStatus } from './types'
 
@@ -82,10 +82,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => unsubs.forEach((u) => u())
   }, [user])
 
-  // Rest days auto-advance at midnight: reconcile whenever cycle loads/changes.
+  // The cycle is calendar-driven — advance one step per elapsed day at midnight.
   useEffect(() => {
     if (!user || !cycle) return
-    const advanced = autoAdvanceRestDays(cycle)
+    const advanced = autoAdvanceDaily(cycle)
     if (advanced.pointer !== cycle.pointer || advanced.pointerDate !== cycle.pointerDate) {
       repo.saveCycle(user.uid, advanced)
     }

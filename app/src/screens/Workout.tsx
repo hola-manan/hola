@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
 import { ai } from '../lib/ai'
-import { advance, currentDayLabel } from '../lib/cycle'
 import { lastSession, presetFromWorkout, uuid } from '../lib/workout'
 import { workingSetCount, workoutVolume } from '../lib/volume'
 import { useStore, useUid } from '../store'
@@ -105,7 +104,7 @@ function RestDivider({ seconds, dim }: { seconds: number; dim?: boolean }) {
 }
 
 export function WorkoutScreen() {
-  const { activeWorkout, workouts, exercises, presets, cycle } = useStore()
+  const { activeWorkout, workouts, exercises, presets } = useStore()
   const uid = useUid()
   const navigate = useNavigate()
   const [picker, setPicker] = useState<null | { swapIndex?: number }>(null)
@@ -174,9 +173,6 @@ export function WorkoutScreen() {
     if (saveBackToPreset && w.presetId) {
       const preset = presets.find((p) => p.id === w.presetId)
       if (preset) await repo.savePreset(uid, presetFromWorkout(completed, preset.name, preset))
-    }
-    if (cycle && w.cycleDay && currentDayLabel(cycle).toLowerCase() === w.cycleDay.toLowerCase()) {
-      await repo.saveCycle(uid, advance(cycle))
     }
     ai.generateReport({ workoutId: w.id }).catch(() => {})
     navigate(`/history/${w.id}`, { replace: true })

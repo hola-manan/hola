@@ -49,7 +49,7 @@ export function CycleSetup() {
     <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 20px 30px' }}>
       <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Cycle</div>
       <div style={{ fontSize: 12, color: '#8b93a0', marginTop: 4 }}>
-        {days.length ? `${days.length}-day rotation` : 'Define your rotation'} · rest days auto-advance at midnight
+        {days.length ? `${days.length}-day rotation` : 'Define your rotation'} · advances daily at midnight
       </div>
 
       {!days.length && (

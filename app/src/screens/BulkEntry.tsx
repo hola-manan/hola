@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
 import { parseSetsText } from '../lib/parse'
-import { advance, currentDayLabel, todayStr } from '../lib/cycle'
+import { todayStr } from '../lib/cycle'
 import { uuid } from '../lib/workout'
 import { setVolume } from '../lib/volume'
 import { useStore, useUid } from '../store'
@@ -72,14 +72,6 @@ export function BulkEntry() {
         })),
       }
       await repo.saveWorkout(uid, workout)
-      if (
-        cycle &&
-        cycleDay &&
-        date === todayStr() &&
-        currentDayLabel(cycle).toLowerCase() === cycleDay.toLowerCase()
-      ) {
-        await repo.saveCycle(uid, advance(cycle))
-      }
       navigate(`/history/${workout.id}`, { replace: true })
     } catch (e) {
       setError((e as Error).message)
@@ -128,7 +120,7 @@ export function BulkEntry() {
         {cycle && (
           <div style={{ marginTop: 12 }}>
             <div style={{ fontSize: 11, color: '#8b93a0' }}>
-              Which cycle day was this? <span style={{ color: '#5a6270' }}>(advances your cycle)</span>
+              Which cycle day was this?
             </div>
             <div style={{ display: 'flex', gap: 5, marginTop: 7, flexWrap: 'wrap' }}>
               {[...new Set(cycle.days.filter((d) => d.toLowerCase() !== 'rest'))].map((d) => {

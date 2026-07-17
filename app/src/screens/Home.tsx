@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
-import { currentDayLabel, missedDays, shiftToToday, skipDay } from '../lib/cycle'
+import { currentDayLabel, todayStr } from '../lib/cycle'
 import { emptyWorkout, workoutFromPreset } from '../lib/workout'
 import { cycleShortName, groupedVolumeRows, weekStartMs } from '../lib/targets'
 import { useStore, useUid } from '../store'
@@ -40,11 +40,11 @@ export function Home() {
   const navigate = useNavigate()
 
   const dayLabel = cycle ? currentDayLabel(cycle) : null
-  const missed = cycle ? missedDays(cycle) : 0
   const dayPreset = dayLabel
     ? presets.find((p) => p.cycleDay?.toLowerCase() === dayLabel.toLowerCase())
     : undefined
   const completed = workouts.filter((w) => w.status === 'completed')
+  const trainedDates = new Set(completed.map((w) => todayStr(new Date(w.startedAt))))
   const lastSameDay = dayLabel
     ? completed.find((w) => w.cycleDay?.toLowerCase() === dayLabel.toLowerCase())
     : undefined
@@ -94,8 +94,14 @@ export function Home() {
           {/* cycle strip — tap to edit */}
           <Link to="/cycle" style={{ display: 'flex', gap: 5, marginTop: 16 }}>
             {cycle.days.map((d, i) => {
-              const isToday = i === cycle.pointer % cycle.days.length
-              const done = i < cycle.pointer % cycle.days.length
+              const pos = cycle.pointer % cycle.days.length
+              const isToday = i === pos
+              const past = i < pos
+              // A past day is "done" if it was trained (or was a rest day); a
+              // past training day with no logged workout shows as missed.
+              const trained = trainedDates.has(todayStr(chipDate(cycle, i)))
+              const missedDay = past && !isRestDay(d) && !trained
+              const done = past && !missedDay
               return (
                 <span
                   key={i}
@@ -118,9 +124,11 @@ export function Home() {
                         ? '#0b0d10'
                         : done
                           ? '#63d08a'
-                          : isRestDay(d)
-                            ? '#5a6270'
-                            : '#8b93a0',
+                          : missedDay
+                            ? '#e8b44c'
+                            : isRestDay(d)
+                              ? '#5a6270'
+                              : '#8b93a0',
                     }}
                   >
                     {codeFor(d)}
@@ -137,7 +145,9 @@ export function Home() {
                       ? 'TODAY'
                       : done
                         ? '✓'
-                        : chipDate(cycle, i).toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}
+                        : missedDay
+                          ? '✗'
+                          : chipDate(cycle, i).toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}
                   </span>
                 </span>
               )
@@ -173,36 +183,6 @@ export function Home() {
       <div style={{ marginTop: 14 }}>
         <ReadinessCard />
       </div>
-
-      {cycle && dayLabel && missed > 1 && !isRestDay(dayLabel) && (
-        <div
-          style={{
-            marginTop: 14,
-            padding: '12px 14px',
-            background: '#14171c',
-            border: '1px solid rgba(255,255,255,.08)',
-            borderRadius: 10,
-          }}
-        >
-          <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270' }}>
-            MISSED A DAY? · {dayLabel.toUpperCase()} WAITING {missed} DAYS
-          </span>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <button
-              onClick={() => repo.saveCycle(uid, shiftToToday(cycle))}
-              style={{ flex: 1, padding: '9px 0', background: '#c8f04b', color: '#0b0d10', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600 }}
-            >
-              Shift — do it today
-            </button>
-            <button
-              onClick={() => repo.saveCycle(uid, skipDay(cycle))}
-              style={{ flex: 1, padding: '9px 0', background: 'none', color: '#e9ecef', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, fontSize: 12 }}
-            >
-              Skip — move on
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* action stack */}
       {!activeWorkout && (

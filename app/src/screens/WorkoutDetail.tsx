@@ -251,9 +251,7 @@ export function WorkoutDetail() {
 
       {cycle && (
         <div style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: '#3d434c' }}>
-          {w.cycleDay && currentDayLabel(cycle).toLowerCase() !== w.cycleDay.toLowerCase()
-            ? `Cycle advanced · today: ${currentDayLabel(cycle)} (day ${(cycle.pointer % cycle.days.length) + 1} of ${cycle.days.length})`
-            : `Cycle: ${currentDayLabel(cycle)} day (day ${(cycle.pointer % cycle.days.length) + 1} of ${cycle.days.length})`}
+          {`Cycle: ${currentDayLabel(cycle)} day (day ${(cycle.pointer % cycle.days.length) + 1} of ${cycle.days.length})`}
         </div>
       )}
 
