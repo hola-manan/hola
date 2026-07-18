@@ -58,7 +58,7 @@ body {
    The body never scrolls: each screen scrolls its own content region, so
    headers and the tab bar stay pinned. */
 #root {
-  height: var(--app-height, 100dvh);
+  height: 100dvh;
   overflow: hidden;
   padding-top: env(safe-area-inset-top);
   /* no bottom padding here: the TabBar (and fixed bottom overlays) own the
