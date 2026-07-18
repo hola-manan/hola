@@ -37,7 +37,7 @@ export function ProfileScreen() {
   const latestWeight = profile.bodyweight[profile.bodyweight.length - 1]
 
   return (
-    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '28px 0 0', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '0 20px', fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Profile</div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 30px', display: 'flex', flexDirection: 'column' }}>
 

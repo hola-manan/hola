@@ -190,7 +190,7 @@ export function WorkoutScreen() {
         background: '#0b0d10',
         display: 'flex',
         flexDirection: 'column',
-        paddingTop: 62,
+        paddingTop: 18,
         boxSizing: 'border-box',
       }}
     >

@@ -97,7 +97,7 @@ export function Coach() {
   }
 
   return (
-    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 0 0', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '18px 0 0', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <span style={{ fontWeight: 600, fontSize: 15 }}>Coach</span>
         <span style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>

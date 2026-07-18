@@ -18,7 +18,7 @@ export function Presets() {
   }
 
   return (
-    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 20px 30px', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '18px 20px 30px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <button onClick={() => navigate(-1)} style={{ fontSize: 13, color: '#8b93a0', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Cancel</button>
         <span style={{ fontWeight: 600, fontSize: 15 }}>Presets</span>

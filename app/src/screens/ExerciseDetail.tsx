@@ -32,7 +32,7 @@ export function ExerciseDetail() {
   const sessions = series.length
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 0 30px' }}>
+    <div style={{ height: '100%', overflowY: 'auto', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '18px 0 30px' }}>
       
       {/* Media Hero */}
       <button

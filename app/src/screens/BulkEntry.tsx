@@ -90,7 +90,7 @@ export function BulkEntry() {
   }
 
   return (
-    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 0 0', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '18px 0 0', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
         <button onClick={() => navigate(-1)} style={{ fontSize: 13, color: '#8b93a0', background: 'none', border: 'none', padding: 0 }}>Cancel</button>
         <span style={{ fontWeight: 600, fontSize: 15 }}>Add past workout</span>

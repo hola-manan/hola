@@ -72,7 +72,7 @@ export function PresetEdit() {
   const cycleDays = cycle ? [...new Set(cycle.days.filter((d) => d.toLowerCase() !== 'rest'))] : []
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: 62, boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: 18, boxSizing: 'border-box' }}>
       <div style={{ padding: '10px 20px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

@@ -113,7 +113,7 @@ export function WorkoutDetail() {
   })
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '62px 0 0' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '18px 0 0' }}>
       <div style={{ padding: '0 20px' }}>
       <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.14em', color: '#5a6270' }}>
         REPORT{w.cycleDay ? ` · ${w.cycleDay.toUpperCase()}` : ''} ·{' '}

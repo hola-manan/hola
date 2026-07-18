@@ -64,7 +64,7 @@ export function Home() {
   const eyebrowDate = `${now.toLocaleDateString(undefined, { weekday: 'short' })} ${now.getDate()} ${now.toLocaleDateString(undefined, { month: 'short' })}`.toUpperCase()
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '72px 0 0' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '28px 0 0' }}>
       <div style={{ padding: '0 20px' }}>
       {/* eyebrow row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>

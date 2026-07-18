@@ -68,7 +68,7 @@ export function History() {
   }
 
   return (
-    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '28px 0 0', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>History</div>
         <span style={{ fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>{completed.length} WORKOUTS</span>

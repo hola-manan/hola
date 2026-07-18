@@ -121,7 +121,7 @@ export function AICreate() {
     .join(' · ')
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: 62, boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: 18, boxSizing: 'border-box' }}>
       <div style={{ padding: '10px 20px 0' }}>
         {/* header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
