@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { signOut } from '../lib/firebase'
 import { importStrongCSV } from '../lib/importStrong'
 import { repo } from '../lib/repo'
@@ -14,6 +14,7 @@ const CONDENSED = "'IBM Plex Sans Condensed',sans-serif"
 export function ProfileScreen() {
   const { profile, user, exercises, wearable } = useStore()
   const uid = useUid()
+  const navigate = useNavigate()
   const [goals, setGoals] = useState(profile.goals)
   const [heightCm, setHeightCm] = useState(profile.heightCm?.toString() ?? '')
   const [weight, setWeight] = useState('')
@@ -243,7 +244,13 @@ export function ProfileScreen() {
         <button onClick={() => signOut()} style={{ width: '100%', background: 'none', border: '1px solid rgba(224,89,107,.4)', borderRadius: 9, padding: '12px 0', color: '#e0596b', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
           Sign out
         </button>
-        <div style={{ marginTop: 10, textAlign: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: '#3d434c' }}>
+        {/* tap toggles the layout probe overlay — no URL bar in the installed PWA */}
+        <div
+          onClick={() =>
+            navigate(window.location.search.includes('probe') ? '/profile' : '/profile?probe')
+          }
+          style={{ marginTop: 10, textAlign: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: '#3d434c', cursor: 'pointer' }}
+        >
           BUILD {__BUILD_TAG__}
         </div>
       </div>
