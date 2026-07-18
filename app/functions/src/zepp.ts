@@ -4,6 +4,7 @@
 // payload shapes may change under us, so parsers never throw — they return
 // whatever they recognized plus a list of problems.
 
+import { createCipheriv, randomUUID } from 'node:crypto'
 import type { WatchMetrics } from './domain'
 
 export class ZeppAuthError extends Error {}
@@ -27,82 +28,99 @@ export interface ZeppDay {
 
 type Fetch = typeof fetch
 
-const APP_NAME = 'com.xiaomi.hm.health'
-const APP_VERSION = '6.9.5'
-// Stable per-install id; Zepp only requires it to be consistent, not real.
-const DEVICE_ID = '02:00:00:00:00:02'
-const DEFAULT_API_HOST = 'api-mifit.huami.com'
+// Zepp app identity (mirrors huami-token v0.8.0, the community reference for
+// the 2025 login flow — Zepp now AES-encrypts the credential request and
+// rejects the legacy plain form with a misleading HTTP 429).
+const APP_VERSION = '9.12.5'
+const CV = '151689_9.12.5'
+const VB = '202509151347'
+const ZEPP_UA = 'Zepp/9.12.5 (Pixel 4; Android 12; Density/2.75)'
+const CHANNEL = 'a100900101016'
+const DEFAULT_API_HOST = 'api-mifit.zepp.com'
+
+// Static AES-128-CBC parameters baked into the Zepp app for the first
+// credential request ("x-hm-ekv: 1" = encrypted key version 1).
+const AES_KEY = Buffer.from('xeNtBVqzDc6tuNTh')
+const AES_IV = Buffer.from('MAAAYAAAAAAAAABg')
+
+/** AES-128-CBC + PKCS7 over the urlencoded credential form. */
+export function zeppEncrypt(data: Buffer): Buffer {
+  const cipher = createCipheriv('aes-128-cbc', AES_KEY, AES_IV)
+  return Buffer.concat([cipher.update(data), cipher.final()])
+}
 
 const form = (fields: Record<string, string>) => new URLSearchParams(fields).toString()
 
-const FORM_HEADERS = {
-  'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-  'user-agent': `MiFit/${APP_VERSION} (Android; 13; Zepp)`,
-}
-
-/** Email+password → tokens. Zepp rate-limits logins; callers should cache the result. */
+/** Email+password → tokens via the encrypted v2 flow. Callers cache the result. */
 export async function loginWithPassword(
   email: string,
   password: string,
   f: Fetch = fetch,
 ): Promise<ZeppTokens> {
-  // Step 1: exchange credentials for a short-lived access code (arrives in a redirect).
-  const res1 = await f(
-    `https://api-user.huami.com/registrations/${encodeURIComponent(email)}/tokens`,
-    {
-      method: 'POST',
-      redirect: 'manual',
-      headers: FORM_HEADERS,
-      body: form({
-        state: 'REDIRECTION',
-        client_id: 'HuaMi',
-        password,
-        redirect_uri: 'https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html',
-        region: 'us-west-2',
-        token: 'access',
-      }),
+  // Step 1: AES-encrypted credential exchange; tokens arrive in a 303 redirect.
+  const credentials =
+    form({
+      emailOrPhone: email,
+      state: 'REDIRECTION',
+      client_id: 'HuaMi',
+      password,
+      redirect_uri: 'https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html',
+      region: 'us-west-2',
+    }) + '&token=access&token=refresh&country_code=US'
+  const res1 = await f('https://api-user-us2.zepp.com/v2/registrations/tokens', {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      app_name: 'com.huami.midong',
+      appname: 'com.huami.midong',
+      cv: CV,
+      v: '2.0',
+      appplatform: 'android_phone',
+      vb: VB,
+      vn: APP_VERSION,
+      'user-agent': ZEPP_UA,
+      'x-hm-ekv': '1',
+      'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
     },
-  )
+    body: zeppEncrypt(Buffer.from(credentials)),
+  })
   if (res1.status === 429) {
-    // Zepp throttles this endpoint hard; not a credentials problem — retryable.
     throw new ZeppApiError('zepp login rate-limited (HTTP 429) — retry later')
   }
   const location = res1.headers.get('location') ?? ''
   let access = ''
-  let countryCode = ''
   try {
     const q = new URL(location).searchParams
-    access = q.get('access') ?? ''
-    countryCode = q.get('country_code') ?? ''
     if (q.get('error')) throw new ZeppAuthError(`zepp login rejected: ${q.get('error')}`)
+    access = q.get('access') ?? ''
   } catch (e) {
     if (e instanceof ZeppAuthError) throw e
     // fall through to the !access check below
   }
   if (!access) {
     throw new ZeppAuthError(
-      `zepp login gave no access code (status ${res1.status}, location ${location.slice(0, 120) || 'missing'})`,
+      `zepp login gave no access token (status ${res1.status}, location ${location.slice(0, 120) || 'missing'})`,
     )
   }
 
-  // Step 2: trade the access code for login/app tokens.
-  const res2 = await f('https://account.huami.com/v2/client/login', {
+  // Step 2: trade the access token for login/app tokens (plain form, webapp headers).
+  const res2 = await f('https://api-mifit-us2.zepp.com/v2/client/login', {
     method: 'POST',
-    headers: FORM_HEADERS,
+    headers: WEBAPP_HEADERS,
     body: form({
-      app_name: APP_NAME,
-      app_version: APP_VERSION,
       code: access,
-      country_code: countryCode || 'US',
-      device_id: DEVICE_ID,
+      device_id: randomUUID(),
       device_model: 'android_phone',
-      grant_type: 'access_token',
+      app_version: APP_VERSION,
+      dn: 'api-mifit.zepp.com,api-user.zepp.com,api-mifit.zepp.com,api-watch.zepp.com,app-analytics.zepp.com,auth.zepp.com,api-analytics.zepp.com',
       third_name: 'huami',
+      source: `com.huami.watch.hmwatchmanager:${APP_VERSION}:151689`,
+      app_name: 'com.huami.midong',
+      country_code: 'US',
+      grant_type: 'access_token',
       allow_registration: 'false',
-      dn: 'account.huami.com,api-user.huami.com,api-mifit.huami.com,app-analytics.huami.com',
-      source: `${APP_NAME}:${APP_VERSION}:50900`,
       lang: 'en',
-      os_version: '1.5.0',
+      countryState: 'US-NY',
     }),
   })
   if (!res2.ok) throw new ZeppAuthError(`zepp client/login failed: HTTP ${res2.status}`)
@@ -123,12 +141,23 @@ export async function loginWithPassword(
   }
 }
 
+const WEBAPP_HEADERS = {
+  app_name: 'com.huami.webapp',
+  appname: 'com.huami.webapp',
+  origin: 'https://user.zepp.com',
+  referer: 'https://user.zepp.com/',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0',
+  'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+  accept: 'application/json, text/plain, */*',
+  'accept-language': 'en-US,en;q=0.5',
+}
+
 /** Regional API host: env override > login response hint > default. */
 function resolveApiHost(loginBody: Record<string, unknown> | null): string {
   if (process.env.ZEPP_API_HOST) return process.env.ZEPP_API_HOST
   // The login response sometimes carries a domains/hosts hint; look for an api-mifit host.
   const scan = (v: unknown): string | null => {
-    if (typeof v === 'string' && /^api-mifit[\w-]*\.huami\.com$/.test(v)) return v
+    if (typeof v === 'string' && /^api-mifit[\w-]*\.zepp\.com$/.test(v)) return v
     if (Array.isArray(v)) for (const x of v) { const hit = scan(x); if (hit) return hit }
     if (v && typeof v === 'object') for (const x of Object.values(v)) { const hit = scan(x); if (hit) return hit }
     return null
@@ -139,10 +168,10 @@ function resolveApiHost(loginBody: Record<string, unknown> | null): string {
 /** Refresh the app token off the long-lived login token (no password involved). */
 export async function renewAppToken(t: ZeppTokens, f: Fetch = fetch): Promise<ZeppTokens> {
   const res = await f(
-    `https://account.huami.com/v1/client/app_tokens?app_name=${APP_NAME}` +
-      `&dn=api-user.huami.com,api-mifit.huami.com,app-analytics.huami.com` +
-      `&login_token=${encodeURIComponent(t.loginToken)}&os_version=1.5.0`,
-    { headers: { 'user-agent': FORM_HEADERS['user-agent'] } },
+    `https://auth.zepp.com/v1/client/app_tokens?app_name=com.huami.midong` +
+      `&dn=api-user.zepp.com,api-mifit.zepp.com,app-analytics.zepp.com` +
+      `&login_token=${encodeURIComponent(t.loginToken)}`,
+    { headers: { 'user-agent': ZEPP_UA } },
   )
   if (res.status === 401 || res.status === 403) {
     throw new ZeppAuthError(`zepp login token rejected: HTTP ${res.status}`)
@@ -160,7 +189,21 @@ export async function renewAppToken(t: ZeppTokens, f: Fetch = fetch): Promise<Ze
 
 async function apiGet(t: ZeppTokens, url: string, f: Fetch): Promise<unknown> {
   const res = await f(url, {
-    headers: { apptoken: t.appToken, 'user-agent': FORM_HEADERS['user-agent'] },
+    headers: {
+      apptoken: t.appToken,
+      appname: 'com.huami.midong',
+      appplatform: 'android_phone',
+      channel: CHANNEL,
+      cv: CV,
+      v: '2.0',
+      vn: APP_VERSION,
+      vb: VB,
+      country: 'US',
+      lang: 'en_US',
+      timezone: 'Asia/Kolkata',
+      'x-request-id': randomUUID(),
+      'user-agent': ZEPP_UA,
+    },
   })
   if (res.status === 401 || res.status === 403) {
     throw new ZeppAuthError(`zepp app token rejected: HTTP ${res.status} for ${new URL(url).pathname}`)
@@ -287,10 +330,13 @@ export function parseBandSummary(item: unknown): {
     if (lt !== null) watch.lightMin = lt
     // stage minutes beat wall-clock span when both exist
     if (dp !== null && lt !== null && dp + lt > 0) {
-      const rem = num(get(slp, 'rem'), 0, 1000) ?? 0
+      // observed Balance payloads carry REM as `dt` (dp/lt/dt sum to the span)
+      const rem = num(get(slp, 'dt'), 0, 1000) ?? num(get(slp, 'rem'), 0, 1000) ?? 0
       watch.sleepMinutes = dp + lt + rem
       if (rem > 0) watch.remMin = rem
     }
+    const score = num(get(slp, 'ss'), 1, 100)
+    if (score !== null) watch.sleepScore = score
     const rhr = num(get(slp, 'rhr'), 25, 120) ?? num(get(summary, 'rhr'), 25, 120)
     if (rhr !== null) watch.restingHr = rhr
   } else if (slp !== undefined) {
@@ -341,7 +387,17 @@ export function parseStressEvent(item: unknown): {
     problems.push('stress event has no recognizable date')
     return { watch, problems }
   }
-  const avg = firstNum([get(extra, 'avgStress'), get(extra, 'avg_stress'), get(extra, 'avg')], 0, 100)
+  let avg = firstNum([get(extra, 'avgStress'), get(extra, 'avg_stress'), get(extra, 'avg')], 0, 100)
+  if (avg === null) {
+    // No avg field on Balance payloads — derive it from the day's data points.
+    const points = decodeSummary(get(extra, 'data'))
+    if (Array.isArray(points) && points.length) {
+      const values = points
+        .map((p) => num(get(p, 'value'), 0, 100))
+        .filter((v): v is number => v !== null)
+      if (values.length) avg = Math.round(values.reduce((s, v) => s + v, 0) / values.length)
+    }
+  }
   const max = firstNum([get(extra, 'maxStress'), get(extra, 'max_stress'), get(extra, 'max')], 0, 100)
   if (avg !== null) watch.stressAvg = avg
   if (max !== null) watch.stressMax = max
@@ -422,6 +478,12 @@ function listOf(payload: unknown, keys: string[]): unknown[] {
   return []
 }
 
+/** Event timestamps are midnight in the user's timezone — format there, not UTC. */
+const EVENT_TZ = 'Asia/Kolkata'
+export function msToLocalDate(ms: number): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: EVENT_TZ }).format(new Date(ms))
+}
+
 /** A day key from an event item: explicit date field, else its timestamp (ms or s). */
 function eventDate(item: unknown, extra: unknown): string | undefined {
   for (const src of [item, extra]) {
@@ -433,7 +495,7 @@ function eventDate(item: unknown, extra: unknown): string | undefined {
       const raw = num(get(src, k), 1e9, 4e12)
       if (raw !== null) {
         const ms = raw > 1e11 ? raw : raw * 1000
-        return new Date(ms).toISOString().slice(0, 10)
+        return msToLocalDate(ms)
       }
     }
   }

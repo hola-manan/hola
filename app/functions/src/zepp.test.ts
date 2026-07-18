@@ -1,3 +1,4 @@
+import { createDecipheriv } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import {
   decodeSummary,
@@ -32,6 +33,17 @@ describe('parseBandSummary', () => {
     expect(watch.sleepMinutes).toBe(95 + 260 + 53) // stage minutes beat wall clock
     expect(watch.sleepStart).toBe(new Date(SLP.st * 1000).toISOString())
     expect(watch.restingHr).toBe(52)
+  })
+
+  it('reads sleep score from slp.ss and REM from slp.dt (real Balance shape)', () => {
+    const { watch } = parseBandSummary({
+      date_time: '2026-07-16',
+      summary: JSON.stringify({ slp: { st: SLP.st, ed: SLP.ed, dp: 62, lt: 250, dt: 39, ss: 56, rhr: 46 } }),
+    })
+    expect(watch.sleepScore).toBe(56)
+    expect(watch.remMin).toBe(39)
+    expect(watch.sleepMinutes).toBe(62 + 250 + 39)
+    expect(watch.restingHr).toBe(46)
   })
 
   it('parses a base64-wrapped summary', () => {
@@ -78,6 +90,22 @@ describe('event parsers', () => {
     const r = parseStressEvent({ date: '2026-07-16', extra: { avgStress: 31, maxStress: 74 } })
     expect(r.watch.stressAvg).toBe(31)
     expect(r.watch.stressMax).toBe(74)
+  })
+
+  it('stress avg derived from data points when no avg field (real Balance shape)', () => {
+    const r = parseStressEvent({
+      timestamp: 1784140200001, // midnight IST — must land on 2026-07-16, not the UTC date
+      maxStress: '63',
+      minStress: '3',
+      data: JSON.stringify([
+        { time: 1, value: 30 },
+        { time: 2, value: 52 },
+        { time: 3, value: 20 },
+      ]),
+    })
+    expect(r.date).toBe('2026-07-16')
+    expect(r.watch.stressAvg).toBe(34)
+    expect(r.watch.stressMax).toBe(63)
   })
 
   it('PAI event daily value', () => {
@@ -129,29 +157,54 @@ const fakeResponse = (init: {
   }) as unknown as Response
 
 describe('loginWithPassword', () => {
-  it('parses access code from the redirect and trades it for tokens', async () => {
-    const calls: string[] = []
-    const f = (async (url: RequestInfo | URL) => {
+  it('sends AES-encrypted credentials, parses the redirect, trades for tokens', async () => {
+    const calls: { url: string; init: RequestInit }[] = []
+    const f = (async (url: RequestInfo | URL, init?: RequestInit) => {
       const u = String(url)
-      calls.push(u)
-      if (u.includes('/registrations/')) {
+      calls.push({ url: u, init: init ?? {} })
+      if (u.includes('/v2/registrations/tokens')) {
         return fakeResponse({
           status: 303,
           location:
-            'https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html?access=AC123&country_code=IN',
+            'https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html?access=AC123&refresh=RF456',
         })
       }
       return fakeResponse({
         json: {
           token_info: { login_token: 'LT', app_token: 'AT', user_id: 'U1' },
-          domains: ['api-mifit-in2.huami.com'],
+          domains: ['api-mifit-in2.zepp.com'],
         },
       })
     }) as typeof fetch
     const t = await loginWithPassword('a@b.c', 'pw', f)
     expect(t).toMatchObject({ loginToken: 'LT', appToken: 'AT', userId: 'U1' })
-    expect(t.apiHost).toBe('api-mifit-in2.huami.com')
-    expect(calls[0]).toContain(encodeURIComponent('a@b.c'))
+    expect(t.apiHost).toBe('api-mifit-in2.zepp.com')
+
+    // Step 1: credentials never travel in the URL or in plaintext.
+    const step1 = calls[0]
+    expect(step1.url).toBe('https://api-user-us2.zepp.com/v2/registrations/tokens')
+    expect(step1.url).not.toContain('a@b.c')
+    const headers1 = step1.init.headers as Record<string, string>
+    expect(headers1['x-hm-ekv']).toBe('1')
+    // The body decrypts (same static key/IV) back to the credential form.
+    const decipher = createDecipheriv(
+      'aes-128-cbc',
+      Buffer.from('xeNtBVqzDc6tuNTh'),
+      Buffer.from('MAAAYAAAAAAAAABg'),
+    )
+    const body = step1.init.body as Buffer
+    const plain = Buffer.concat([decipher.update(body), decipher.final()]).toString()
+    const fields = new URLSearchParams(plain)
+    expect(fields.get('emailOrPhone')).toBe('a@b.c')
+    expect(fields.get('password')).toBe('pw')
+    expect(fields.getAll('token')).toEqual(['access', 'refresh'])
+
+    // Step 2 uses the webapp identity headers that the endpoint requires.
+    const step2 = calls[1]
+    expect(step2.url).toBe('https://api-mifit-us2.zepp.com/v2/client/login')
+    const headers2 = step2.init.headers as Record<string, string>
+    expect(headers2.origin).toBe('https://user.zepp.com')
+    expect(String(step2.init.body)).toContain('code=AC123')
   })
 
   it('missing access code → ZeppAuthError', async () => {
