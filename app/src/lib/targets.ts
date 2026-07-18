@@ -146,7 +146,11 @@ export function groupedVolumeRows(
     const groupDone = children.reduce((sum, c) => sum + c.done, 0)
     const groupLo = children.reduce((sum, c) => sum + c.lo, 0)
     const groupHi = children.reduce((sum, c) => sum + c.hi, 0)
-    const groupPct = efficiencyPct(groupDone, groupLo, groupHi)
+    
+    const groupMid = children.reduce((sum, c) => sum + (c.lo + c.hi) / 2, 0)
+    const groupPct = groupMid > 0 
+      ? Math.round(children.reduce((sum, c) => sum + c.pct * ((c.lo + c.hi) / 2), 0) / groupMid) 
+      : 0
 
     out.push({
       label,
