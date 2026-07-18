@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { volumeVsTargets, weeklySetCounts, weeklyTargets, weekStartMs } from './targets'
+import { efficiencyPct, groupedVolumeRows, weeklySetCounts, weekStartMs } from './targets'
 import { e1rmDelta } from './rm'
 import type { Cycle, Exercise, Workout, WorkoutSet } from '../types'
 
@@ -29,25 +29,39 @@ const workout = (startedAt: number, sets: WorkoutSet[]): Workout => ({
   exercises: [{ exerciseId: 'bench', sets }],
 })
 
-describe('weeklyTargets', () => {
-  it('gives every trained muscle a target, scaled to a 7-day week', () => {
-    const t = weeklyTargets(ppl)
-    // Push hits chest once per 4-day cycle → 4 sets × 7/4 = 7
-    expect(t.get('chest')).toBe(7)
-    expect(t.get('lats')).toBe(7)
-    expect(t.get('quads')).toBe(7)
-    expect(t.has('abs')).toBe(false) // nothing in PPL hits abs as primary
+describe('efficiencyPct', () => {
+  it('handles 0 and negative values', () => {
+    expect(efficiencyPct(0, 10, 20)).toBe(0)
+    expect(efficiencyPct(-5, 10, 20)).toBe(0)
   })
 
-  it('counts muscles hit by multiple days additively', () => {
-    const t = weeklyTargets({ days: ['Push', 'Upper', 'Rest'], pointer: 0, pointerDate: 'x' })
-    // chest in Push and Upper: 2 × 4 × 7/3 ≈ 19
-    expect(t.get('chest')).toBe(19)
+  it('calculates concave rise below the range', () => {
+    // lo=8, hi=12
+    // x=4 -> 75%
+    expect(efficiencyPct(4, 8, 12)).toBe(75)
+    // x=2 -> 44% (100 * (1 - (6/8)^2) = 100 * (1 - 0.5625) = 43.75 -> 44)
+    expect(efficiencyPct(2, 8, 12)).toBe(44)
+  })
+
+  it('returns 100% inside the optimal range', () => {
+    expect(efficiencyPct(8, 8, 12)).toBe(100)
+    expect(efficiencyPct(10, 8, 12)).toBe(100)
+    expect(efficiencyPct(12, 8, 12)).toBe(100)
+  })
+
+  it('handles decline past hi with floor 40', () => {
+    // lo=8, hi=12
+    // x=18 -> 100 - (60 * 6) / 12 = 70
+    expect(efficiencyPct(18, 8, 12)).toBe(70)
+    // x=24 -> 40
+    expect(efficiencyPct(24, 8, 12)).toBe(40)
+    // x=36 -> floor 40
+    expect(efficiencyPct(36, 8, 12)).toBe(40)
   })
 })
 
-describe('weeklySetCounts / volumeVsTargets', () => {
-  it('counts working sets per primary muscle since cutoff, excluding warm-ups', () => {
+describe('weeklySetCounts / groupedVolumeRows', () => {
+  it('counts working sets since cutoff, excluding warm-ups', () => {
     const now = Date.now()
     const w = workout(now, [set(60, 8), set(60, 8), set(20, 12, 'warmup')])
     const counts = weeklySetCounts([w], exercises, now - 1000)
@@ -56,15 +70,36 @@ describe('weeklySetCounts / volumeVsTargets', () => {
     expect(weeklySetCounts([old], exercises, now - 1000).get('chest')).toBeUndefined()
   })
 
-  it('flags muscles under 75% of target as behind', () => {
+  it('groupedVolumeRows aggregates trained muscles in a PPL cycle', () => {
     const now = Date.now()
-    const rows = volumeVsTargets(ppl, [workout(now, [set(60, 8), set(60, 8)])], exercises, now - 1000)
-    const chest = rows.find((r) => r.muscle === 'chest')!
-    expect(chest.done).toBe(2)
-    expect(chest.target).toBe(7)
-    expect(chest.behind).toBe(true)
-    const lats = rows.find((r) => r.muscle === 'lats')!
-    expect(lats.done).toBe(0)
+    // 14 chest sets (optimal range [12, 20])
+    const w = workout(now, Array(14).fill(null).map(() => set(60, 8)))
+    const rows = groupedVolumeRows(ppl, [w], exercises, now - 1000)
+
+    // Chest group should exist
+    const chestGroup = rows.find((r) => r.label === 'Chest')!
+    expect(chestGroup).toBeDefined()
+    expect(chestGroup.done).toBe(14)
+    expect(chestGroup.lo).toBe(12)
+    expect(chestGroup.hi).toBe(20)
+    expect(chestGroup.pct).toBe(100) // in optimal range
+    expect(chestGroup.behind).toBe(false)
+    expect(chestGroup.over).toBe(false)
+
+    // Check chest muscle child row
+    const chestChild = chestGroup.muscles.find((c) => c.muscle === 'chest')!
+    expect(chestChild).toBeDefined()
+    expect(chestChild.done).toBe(14)
+    expect(chestChild.pct).toBe(100)
+
+    // Shoulders group: front delts, side delts, rear delts.
+    // Done is 0. lo = 2 + 8 + 4 = 14. Should be flagged behind.
+    const shouldersGroup = rows.find((r) => r.label === 'Shoulders')!
+    expect(shouldersGroup).toBeDefined()
+    expect(shouldersGroup.done).toBe(0)
+    expect(shouldersGroup.lo).toBe(14)
+    expect(shouldersGroup.hi).toBe(26)
+    expect(shouldersGroup.behind).toBe(true)
   })
 })
 

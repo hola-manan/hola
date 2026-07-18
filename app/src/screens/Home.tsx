@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
 import { currentDayLabel, todayStr } from '../lib/cycle'
@@ -38,6 +39,7 @@ export function Home() {
   const { cycle, presets, workouts, activeWorkout, profile, exercises } = useStore()
   const uid = useUid()
   const navigate = useNavigate()
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const dayLabel = cycle ? currentDayLabel(cycle) : null
   const dayPreset = dayLabel
@@ -274,37 +276,143 @@ export function Home() {
       {volumeRows.length > 0 && (
         <div style={{ marginTop: 16, paddingBottom: 16 }}>
           <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270' }}>
-             THIS WEEK · VOLUME VS CYCLE TARGET
+            THIS WEEK · SETS VS OPTIMAL RANGE
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 9 }}>
-            {volumeRows.map((r) => (
-              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 64, fontSize: 11, color: r.behind ? '#e8b44c' : '#8b93a0' }}>
-                  {r.label}
-                </span>
-                <div style={{ flex: 1, height: 5, background: '#1b1f26', borderRadius: 3 }}>
-                  <div
-                    style={{
-                      width: `${Math.min(100, r.pct)}%`,
-                      height: 5,
-                      background: r.behind ? '#e8b44c' : '#57c4cc',
-                      borderRadius: 3,
+            {volumeRows.map((r) => {
+              const isExpanded = expanded.has(r.label)
+              const color = (r.behind || r.over) ? '#e8b44c' : '#57c4cc'
+              return (
+                <div key={r.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <button
+                    onClick={() => {
+                      const next = new Set(expanded)
+                      if (next.has(r.label)) next.delete(r.label)
+                      else next.add(r.label)
+                      setExpanded(next)
                     }}
-                  />
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      margin: 0,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      font: 'inherit',
+                      color: 'inherit',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 80,
+                        fontSize: 11,
+                        fontFamily: MONO,
+                        color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>{r.label}</span>
+                      <span style={{ fontSize: 9, marginLeft: 2 }}>{isExpanded ? '▾' : '▸'}</span>
+                    </span>
+                    <div style={{ flex: 1, height: 5, background: '#1b1f26', borderRadius: 3 }}>
+                      <div
+                        style={{
+                          width: `${Math.min(100, r.pct)}%`,
+                          height: 5,
+                          background: color,
+                          borderRadius: 3,
+                        }}
+                      />
+                    </div>
+                    <span
+                      style={{
+                        width: 56,
+                        textAlign: 'right',
+                        fontFamily: MONO,
+                        fontSize: 10.5,
+                        color,
+                      }}
+                    >
+                      {r.done}/{r.lo}–{r.hi}
+                    </span>
+                    <span
+                      style={{
+                        width: 34,
+                        textAlign: 'right',
+                        fontFamily: MONO,
+                        fontSize: 10.5,
+                        color,
+                      }}
+                    >
+                      {r.pct}%
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingLeft: 10 }}>
+                      {r.muscles.map((m) => {
+                        const mColor = (m.behind || m.over) ? '#e8b44c' : '#57c4cc'
+                        return (
+                          <div key={m.muscle} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span
+                              style={{
+                                width: 70,
+                                fontSize: 10,
+                                fontFamily: MONO,
+                                color: mColor,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {m.muscle}
+                            </span>
+                            <div style={{ flex: 1, height: 4, background: '#1b1f26', borderRadius: 2 }}>
+                              <div
+                                style={{
+                                  width: `${Math.min(100, m.pct)}%`,
+                                  height: 4,
+                                  background: mColor,
+                                  borderRadius: 2,
+                                }}
+                              />
+                            </div>
+                            <span
+                              style={{
+                                width: 56,
+                                textAlign: 'right',
+                                fontFamily: MONO,
+                                fontSize: 10,
+                                color: mColor,
+                              }}
+                            >
+                              {m.done}/{m.lo}–{m.hi}
+                            </span>
+                            <span
+                              style={{
+                                width: 34,
+                                textAlign: 'right',
+                                fontFamily: MONO,
+                                fontSize: 10,
+                                color: mColor,
+                              }}
+                            >
+                              {m.pct}%
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-                <span
-                  style={{
-                    width: 34,
-                    textAlign: 'right',
-                    fontFamily: MONO,
-                    fontSize: 10.5,
-                    color: r.behind ? '#e8b44c' : '#8b93a0',
-                  }}
-                >
-                  {r.pct}%
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

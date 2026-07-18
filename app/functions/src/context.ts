@@ -12,6 +12,7 @@ import {
   type Workout,
 } from './domain'
 import { formatSleepDuration, rhrElevated, isLowReadiness } from './readinessRule'
+import { MUSCLE_RANGES, weekStartMs } from './volumeTargets'
 import catalogJson from './catalog.json'
 
 export const CATALOG: CatalogEntry[] = catalogJson as CatalogEntry[]
@@ -177,6 +178,40 @@ export function describeE1RMs(workouts: Workout[], catalog: Map<string, CatalogE
   return `CURRENT ESTIMATED 1RMs (Epley):\n${rows}`
 }
 
+export function describeWeeklyVolume(
+  workouts: Workout[],
+  catalog: Map<string, CatalogEntry>,
+  now = new Date(),
+): string {
+  const startMs = weekStartMs(now)
+  const weeklyWorkouts = workouts.filter((w) => w.status === 'completed' && w.startedAt >= startMs)
+  const counts = muscleSetCounts(weeklyWorkouts, catalog)
+
+  const lines: string[] = []
+  for (const [m, range] of Object.entries(MUSCLE_RANGES)) {
+    const [lo, hi] = range
+    const done = counts.get(m) ?? 0
+    if (done > 0 || done < lo) {
+      let tag = ''
+      if (done === 0) {
+        tag = 'UNTRAINED'
+      } else if (done < lo) {
+        tag = 'UNDER'
+      } else if (done > hi) {
+        tag = 'OVER'
+      } else {
+        tag = 'in range'
+      }
+      lines.push(`${m}: ${done} sets (optimal ${lo}–${hi}) — ${tag}`)
+    }
+  }
+
+  return [
+    "=== THIS WEEK'S VOLUME VS OPTIMAL (working sets per muscle, Mon-based week) ===",
+    ...lines,
+  ].join('\n')
+}
+
 export function buildContext(data: UserData): string {
   const catalog = buildUserCatalog(data.customExercises)
   return [
@@ -191,6 +226,8 @@ export function buildContext(data: UserData): string {
     '',
     '=== STRENGTH ===',
     describeE1RMs(data.workouts, catalog),
+    '',
+    describeWeeklyVolume(data.workouts, catalog),
     '',
     '=== HISTORY ===',
     summarizeHistory(data.workouts, catalog),

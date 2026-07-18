@@ -9,7 +9,7 @@ Mobile-first PWA gym tracker (React 19 + Vite + TypeScript + Firebase). Tracks w
 
 ## Layout
 - `app/` — the PWA. Source in `app/src`: `screens/` (one file per route), `components/`, `lib/` (pure domain logic, unit-tested), `data/exercises.ts` (curated catalog, single primary muscle per exercise), `types.ts`, `store.tsx`, `App.tsx` (routes).
-- `app/functions/` — Firebase Functions (AI endpoints). Mirrors some frontend logic by copy (e.g. `readinessRule.ts` exists in both `app/src/lib` and `app/functions/src`) because functions cannot import app src.
+- `app/functions/` — Firebase Functions (AI endpoints). Mirrors some frontend logic by copy (e.g. `readinessRule.ts`, and `volumeTargets.ts` mirroring the ranges in `app/src/lib/targets.ts`) because functions cannot import app src.
 - `docs/feature-spec.md` — domain vocabulary and feature spec.
 
 ## Conventions

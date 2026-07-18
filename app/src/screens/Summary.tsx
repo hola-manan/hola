@@ -48,7 +48,7 @@ export function Summary() {
     : null
 
   const rows = cycle ? groupedVolumeRows(cycle, completed, exercises, weekStart) : []
-  const flagged = rows.filter((r) => r.behind)
+  const flagged = rows.filter((r) => r.behind || r.over)
 
   const deltaChips = useMemo(() => {
     const ids = [...new Set(thisWeek.flatMap((w) => w.exercises.map((e) => e.exerciseId)))]
@@ -121,29 +121,30 @@ export function Summary() {
       {rows.length > 0 && (
         <div style={{ marginTop: 14, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: 14 }}>
           <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270', marginBottom: 10 }}>
-            VOLUME VS CYCLE INTENT · SETS/WK
+            SETS/WK VS OPTIMAL RANGE
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {rows.map((r) => {
-              const color = r.behind ? '#e8b44c' : '#57c4cc'
+              const color = (r.behind || r.over) ? '#e8b44c' : '#57c4cc'
               const bg = '#1b1f26'
-              const fillPct = Math.min(100, r.pct * 0.85) // using tick as 85% roughly
               return (
                 <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 70, fontSize: 11, color: r.behind ? color : '#8b93a0' }}>{r.label}</span>
-                  <div style={{ flex: 1, height: 6, background: bg, borderRadius: 3, position: 'relative' }}>
-                    <div style={{ width: `${fillPct}%`, height: 6, background: color, borderRadius: 3 }}></div>
-                    <div style={{ position: 'absolute', left: '85%', top: -2, width: 2, height: 10, background: 'rgba(255,255,255,.35)' }}></div>
+                  <span style={{ width: 70, fontSize: 11, color }}>{r.label}</span>
+                  <div style={{ flex: 1, height: 6, background: bg, borderRadius: 3 }}>
+                    <div style={{ width: `${Math.min(100, r.pct)}%`, height: 6, background: color, borderRadius: 3 }}></div>
                   </div>
-                  <span style={{ width: 48, textAlign: 'right', fontFamily: MONO, fontSize: 10.5, color: r.behind ? color : '#8b93a0' }}>
-                    {r.done}/{r.target}
+                  <span style={{ width: 56, textAlign: 'right', fontFamily: MONO, fontSize: 10.5, color }}>
+                    {r.done}/{r.lo}–{r.hi}
+                  </span>
+                  <span style={{ width: 34, textAlign: 'right', fontFamily: MONO, fontSize: 10.5, color }}>
+                    {r.pct}%
                   </span>
                 </div>
               )
             })}
           </div>
           <div style={{ fontSize: 10, color: '#3d434c', marginTop: 9 }}>
-            │ = cycle target · warm-ups excluded
+            optimal weekly range from research · warm-ups excluded
           </div>
         </div>
       )}
