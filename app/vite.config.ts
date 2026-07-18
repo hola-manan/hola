@@ -4,7 +4,15 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const buildTag = new Date()
+  .toISOString()
+  .replace(/[-:T]/g, '')
+  .slice(2, 12) // yyMMddHHmm (UTC)
+
 export default defineConfig({
+  define: {
+    __BUILD_TAG__: JSON.stringify(buildTag),
+  },
   plugins: [
     react(),
     tailwindcss(),

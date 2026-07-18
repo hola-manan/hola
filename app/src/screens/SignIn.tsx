@@ -47,6 +47,9 @@ export function SignIn() {
         
         {error && <div style={{ fontSize: 13, color: '#e0596b', textAlign: 'center', marginTop: 8 }}>{error}</div>}
       </div>
+      <div style={{ position: 'fixed', bottom: 10, left: 0, right: 0, textAlign: 'center', fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '.12em', color: '#3d434c' }}>
+        BUILD {__BUILD_TAG__}
+      </div>
     </div>
   )
 }

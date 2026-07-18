@@ -243,6 +243,9 @@ export function ProfileScreen() {
         <button onClick={() => signOut()} style={{ width: '100%', background: 'none', border: '1px solid rgba(224,89,107,.4)', borderRadius: 9, padding: '12px 0', color: '#e0596b', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
           Sign out
         </button>
+        <div style={{ marginTop: 10, textAlign: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: '#3d434c' }}>
+          BUILD {__BUILD_TAG__}
+        </div>
       </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useStore } from './store'
 import { SignIn } from './screens/SignIn'
@@ -20,14 +21,76 @@ import { ProfileScreen } from './screens/Profile'
 import { TabBar } from './components/TabBar'
 import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
 
+/** Layout diagnostics overlay — open the app with `?probe` to read real
+ *  safe-area/viewport numbers off a device. */
+function InsetProbe() {
+  const [info, setInfo] = useState('')
+  useEffect(() => {
+    const probe = document.createElement('div')
+    probe.style.cssText =
+      'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)'
+    document.body.appendChild(probe)
+    const update = () => {
+      const cs = getComputedStyle(probe)
+      const root = document.getElementById('root')
+      setInfo(
+        [
+          `build ${__BUILD_TAG__}`,
+          `inset-top ${cs.paddingTop}`,
+          `inset-bottom ${cs.paddingBottom}`,
+          `innerH ${window.innerHeight}`,
+          `clientH ${document.documentElement.clientHeight}`,
+          `rootH ${root?.offsetHeight ?? '?'}`,
+          `visualH ${Math.round(window.visualViewport?.height ?? 0)}`,
+          `scrollY ${window.scrollY}`,
+        ].join('\n'),
+      )
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      probe.remove()
+    }
+  }, [])
+  return (
+    <pre
+      style={{
+        position: 'fixed',
+        top: 70,
+        left: 8,
+        zIndex: 99,
+        margin: 0,
+        background: 'rgba(0,0,0,.85)',
+        color: '#c8f04b',
+        fontSize: 11,
+        lineHeight: 1.5,
+        padding: 10,
+        borderRadius: 8,
+        fontFamily: "'IBM Plex Mono',monospace",
+        pointerEvents: 'none',
+      }}
+    >
+      {info}
+    </pre>
+  )
+}
+
 export default function App() {
   const { user, authReady, activeWorkout } = useStore()
   const location = useLocation()
+  const probing = window.location.search.includes('probe')
 
   if (!authReady) {
     return <div className="grid min-h-dvh place-items-center text-muted">Loading…</div>
   }
-  if (!user) return <SignIn />
+  if (!user)
+    return (
+      <>
+        <SignIn />
+        {probing && <InsetProbe />}
+      </>
+    )
 
   const onWorkoutScreen = location.pathname === '/workout'
 
@@ -58,6 +121,7 @@ export default function App() {
       </main>
       {activeWorkout && !onWorkoutScreen && <ActiveWorkoutBanner workout={activeWorkout} />}
       <TabBar />
+      {probing && <InsetProbe />}
     </div>
   )
 }

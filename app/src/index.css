@@ -61,7 +61,9 @@ body {
   height: 100dvh;
   overflow: hidden;
   padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* no bottom padding here: the TabBar (and fixed bottom overlays) own the
+     bottom inset via max(Npx, env(safe-area-inset-bottom)) — padding it twice
+     floats the bar a whole inset above the screen edge */
   box-sizing: border-box;
 }
 

@@ -35,7 +35,7 @@ export function RestTimer({
         gap: 12,
         background: '#101318',
         borderTop: '1px solid rgba(255,255,255,.08)',
-        padding: '10px 16px 30px',
+        padding: '10px 16px max(30px, env(safe-area-inset-bottom))',
       }}
     >
       <div style={{ flex: 1 }}>
