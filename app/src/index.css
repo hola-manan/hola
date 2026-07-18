@@ -58,7 +58,12 @@ body {
    The body never scrolls: each screen scrolls its own content region, so
    headers and the tab bar stay pinned. */
 #root {
-  height: 100dvh;
+  /* iOS hands a status-bar-short viewport at launch, so 100dvh renders ~59px
+     short and the tab bar floats up until the first interaction settles it.
+     100vh/100lvh = the stable LARGE viewport, correct from the first frame.
+     (lvh wins where supported; 100vh is the iOS-equivalent fallback.) */
+  height: 100vh;
+  height: 100lvh;
   overflow: hidden;
   padding-top: env(safe-area-inset-top);
   /* no bottom padding here: the TabBar (and fixed bottom overlays) own the
