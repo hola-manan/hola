@@ -142,6 +142,10 @@ export interface WatchMetrics {
   restingHr?: number // bpm
   /** Mean resting HR of the previous ≤7 days, precomputed at sync time. */
   rhrBaseline7d?: number
+  /** The watch's own readiness score (Amazfit Readiness, 0-100). */
+  readinessScore?: number
+  /** Overnight HRV in ms. */
+  hrv?: number
   stressAvg?: number // 0-100
   stressMax?: number
   pai?: number // daily PAI

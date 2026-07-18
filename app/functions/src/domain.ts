@@ -55,6 +55,8 @@ export interface WatchMetrics {
   sleepEnd?: string
   restingHr?: number
   rhrBaseline7d?: number
+  readinessScore?: number // Amazfit Readiness, 0-100
+  hrv?: number // overnight HRV, ms
   stressAvg?: number
   stressMax?: number
   pai?: number

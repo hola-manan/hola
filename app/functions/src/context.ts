@@ -124,6 +124,8 @@ export function describeReadiness(r: Readiness | null, history: Readiness[] = []
     } else if (w.sleepScore !== undefined) {
       parts.push(`sleep score ${w.sleepScore}/100`)
     }
+    if (w.readinessScore !== undefined) parts.push(`watch readiness score ${w.readinessScore}/100`)
+    if (w.hrv !== undefined) parts.push(`overnight HRV ${w.hrv} ms`)
     if (w.restingHr !== undefined) {
       parts.push(
         `resting HR ${w.restingHr} bpm${

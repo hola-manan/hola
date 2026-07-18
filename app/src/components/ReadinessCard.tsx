@@ -54,6 +54,8 @@ export function ReadinessCard() {
         </div>
         <div style={{ display: 'flex', gap: 0, marginTop: 10 }}>
           {col(`${slp}/5`, 'Sleep', slpColor, true)}
+          {r.watch?.readinessScore !== undefined &&
+            col(`${r.watch.readinessScore}`, 'Ready', r.watch.readinessScore < 60 ? '#e8b44c' : '#57c4cc')}
           {col(`${r.energy}/5`, 'Energy', (r.energy ?? 5) <= 2 ? '#e8b44c' : '#e9ecef')}
           {col(low ? 'TRIM' : 'FULL', 'Intensity', low ? '#e8b44c' : '#63d08a')}
         </div>
@@ -127,6 +129,8 @@ export function ReadinessCard() {
             <div style={{ flex: 1, fontSize: 12, color: '#e9ecef' }}>
               {r.watch.sleepMinutes ? formatSleepDuration(r.watch.sleepMinutes) : 'Unknown'} sleep
               {r.watch.sleepScore ? ` (score ${r.watch.sleepScore})` : ''}
+              {r.watch.readinessScore !== undefined ? `, ready ${r.watch.readinessScore}` : ''}
+              {r.watch.hrv ? `, HRV ${r.watch.hrv}` : ''}
               {r.watch.restingHr ? `, RHR ${r.watch.restingHr}` : ''}
               {rhrElevated(r.watch) && <span style={{ color: '#e8b44c' }}> (elevated)</span>}
             </div>

@@ -42,6 +42,8 @@ export function rhrElevated(w?: WatchMetrics): boolean {
 export function isLowReadiness(r: Readiness | null | undefined): boolean {
   if (!r) return false
   if (rhrElevated(r.watch)) return true
+  // The watch's own readiness score (HRV/RHR/temp-based) flags a rough night directly.
+  if (r.watch?.readinessScore !== undefined && r.watch.readinessScore < 60) return true
   const sleep = sleepScoreTo5(r)
   const energy = r.energy ?? null
   if (sleep !== null && sleep <= 2) return true

@@ -232,7 +232,7 @@ export async function fetchDays(
     `https://${t.apiHost}/users/${encodeURIComponent(t.userId)}/events` +
     `?eventType=${type}&from=${fromMs}&to=${toMs}&limit=60`
 
-  const [band, sleepEv, stressEv, paiEv] = await Promise.all([
+  const [band, sleepEv, stressEv, paiEv, readinessEv] = await Promise.all([
     apiGet(
       t,
       `https://${t.apiHost}/v1/data/band_data.json?query_type=summary&device_type=android_phone` +
@@ -240,10 +240,11 @@ export async function fetchDays(
       f,
     ),
     // Balance-era metrics live in the events API; a missing/renamed event type
-    // must not sink the whole sync, so these three are individually tolerant.
+    // must not sink the whole sync, so these are individually tolerant.
     apiGet(t, eventsUrl('sleep'), f).catch(rethrowAuth),
     apiGet(t, eventsUrl('all_day_stress'), f).catch(rethrowAuth),
     apiGet(t, eventsUrl('PaiHealthInfo'), f).catch(rethrowAuth),
+    apiGet(t, eventsUrl('readiness'), f).catch(rethrowAuth),
   ])
 
   const days = new Map<string, ZeppDay>()
@@ -267,15 +268,16 @@ export async function fetchDays(
   mergeEvents(day, sleepEv, parseSleepEvent)
   mergeEvents(day, stressEv, parseStressEvent)
   mergeEvents(day, paiEv, parsePaiEvent)
+  mergeEvents(day, readinessEv, parseReadinessEvent)
 
   const out = [...days.values()]
     .filter((d) => d.date >= fromDate && d.date <= toDate)
     .sort((a, b) => a.date.localeCompare(b.date))
   if (opts?.debug && out.length) {
     // Attach raw payloads once (on the last day) so field mappings can be fixed against real data.
-    out[out.length - 1].raw = { band, sleepEv, stressEv, paiEv }
+    out[out.length - 1].raw = { band, sleepEv, stressEv, paiEv, readinessEv }
   } else if (opts?.debug) {
-    return [{ date: toDate, watch: {}, problems: ['no days parsed'], raw: { band, sleepEv, stressEv, paiEv } }]
+    return [{ date: toDate, watch: {}, problems: ['no days parsed'], raw: { band, sleepEv, stressEv, paiEv, readinessEv } }]
   }
   return out
 }
@@ -402,6 +404,29 @@ export function parseStressEvent(item: unknown): {
   if (avg !== null) watch.stressAvg = avg
   if (max !== null) watch.stressMax = max
   if (avg === null && max === null) problems.push('stress event had no usable fields')
+  return { date, watch, problems }
+}
+
+/** events?eventType=readiness item → the watch's own readiness score + overnight HRV.
+ *  Component scores use 255 as a "missing" sentinel; range checks reject it. */
+export function parseReadinessEvent(item: unknown): {
+  date?: string
+  watch: Partial<WatchMetrics>
+  problems: string[]
+} {
+  const problems: string[] = []
+  const watch: Partial<WatchMetrics> = {}
+  const extra = decodeSummary(get(item, 'extra')) ?? item
+  const date = eventDate(item, extra)
+  if (!date) {
+    problems.push('readiness event has no recognizable date')
+    return { watch, problems }
+  }
+  const score = firstNum([get(extra, 'rdnsScore'), get(extra, 'readinessScore'), get(extra, 'score')], 0, 100)
+  if (score !== null) watch.readinessScore = score
+  const hrv = firstNum([get(extra, 'sleepHRV'), get(extra, 'hrv'), get(extra, 'sleep_hrv')], 10, 250)
+  if (hrv !== null) watch.hrv = hrv
+  if (score === null && hrv === null) problems.push('readiness event had no usable fields')
   return { date, watch, problems }
 }
 

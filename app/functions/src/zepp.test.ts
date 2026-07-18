@@ -7,6 +7,7 @@ import {
   num,
   parseBandSummary,
   parsePaiEvent,
+  parseReadinessEvent,
   parseSleepEvent,
   parseStressEvent,
   renewAppToken,
@@ -106,6 +107,18 @@ describe('event parsers', () => {
     expect(r.date).toBe('2026-07-16')
     expect(r.watch.stressAvg).toBe(34)
     expect(r.watch.stressMax).toBe(63)
+  })
+
+  it('readiness event: rdnsScore + sleepHRV, 255 sentinel rejected', () => {
+    const r = parseReadinessEvent({
+      timestamp: 1784170860000,
+      rdnsScore: '96',
+      sleepHRV: '106',
+      mentScore: '255',
+    })
+    expect(r.date).toBe('2026-07-16')
+    expect(r.watch.readinessScore).toBe(96)
+    expect(r.watch.hrv).toBe(106)
   })
 
   it('PAI event daily value', () => {

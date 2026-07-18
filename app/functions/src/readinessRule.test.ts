@@ -84,6 +84,11 @@ describe('isLowReadiness', () => {
     expect(isLowReadiness(watchDoc({ sleepScore: 90, restingHr: 60, rhrBaseline7d: 52 }))).toBe(true)
   })
 
+  it('low watch readiness score alone triggers low; 60+ does not', () => {
+    expect(isLowReadiness(watchDoc({ sleepScore: 90, readinessScore: 59 }))).toBe(true)
+    expect(isLowReadiness(watchDoc({ sleepScore: 90, readinessScore: 60 }))).toBe(false)
+  })
+
   it('watch-only doc (no energy yet) uses only the objective signals', () => {
     expect(isLowReadiness(watchDoc({ sleepScore: 40 }))).toBe(true)
     expect(isLowReadiness(watchDoc({ sleepScore: 70 }))).toBe(false)
