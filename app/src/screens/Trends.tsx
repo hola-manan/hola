@@ -56,32 +56,32 @@ export function Trends() {
   const prevBw = profile.bodyweight[profile.bodyweight.length - 2]
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '0 20px', flex: 1, overflow: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Trends</div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {RANGES.map((r) => {
-              const active = range === r.days
-              return (
-                <span
-                  key={r.label}
-                  onClick={() => setRange(r.days)}
-                  style={{
-                    fontSize: 10, fontFamily: MONO, padding: '3px 8px', borderRadius: 5,
-                    background: active ? '#c8f04b' : 'transparent',
-                    color: active ? '#0b0d10' : '#5a6270',
-                    fontWeight: active ? 600 : 400,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {r.label}
-                </span>
-              )
-            })}
-          </div>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Trends</div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {RANGES.map((r) => {
+            const active = range === r.days
+            return (
+              <span
+                key={r.label}
+                onClick={() => setRange(r.days)}
+                style={{
+                  fontSize: 10, fontFamily: MONO, padding: '3px 8px', borderRadius: 5,
+                  background: active ? '#c8f04b' : 'transparent',
+                  color: active ? '#0b0d10' : '#5a6270',
+                  fontWeight: active ? 600 : 400,
+                  cursor: 'pointer'
+                }}
+              >
+                {r.label}
+              </span>
+            )
+          })}
         </div>
-        
+      </div>
+      <div style={{ padding: '0 20px', flex: 1, minHeight: 0, overflow: 'auto' }}>
+
         <div
           onClick={() => setPickerOpen(true)}
           style={{ marginTop: 12, background: '#14171c', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: '#5a6270', cursor: 'pointer' }}

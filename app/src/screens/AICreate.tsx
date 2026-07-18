@@ -121,8 +121,8 @@ export function AICreate() {
     .join(' · ')
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', paddingTop: 62 }}>
-      <div style={{ padding: '10px 20px 0', flex: 1 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: 62, boxSizing: 'border-box' }}>
+      <div style={{ padding: '10px 20px 0' }}>
         {/* header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -157,7 +157,9 @@ export function AICreate() {
         <div style={{ fontSize: 11, color: '#5a6270', marginTop: 6, lineHeight: 1.5 }}>
           Built from: {builtFrom}
         </div>
+      </div>
 
+      <div style={{ padding: '0 20px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {busy && <EmptyState>The coach is drafting your workout…</EmptyState>}
         {error && (
           <Card className="mt-3">
@@ -337,13 +339,12 @@ export function AICreate() {
       {/* footer bar */}
       {draft && !busy && (
         <div
-          className="sticky bottom-0"
           style={{
             display: 'flex',
             gap: 8,
             background: '#101318',
             borderTop: '1px solid rgba(255,255,255,.08)',
-            padding: '12px 16px max(30px, env(safe-area-inset-bottom))',
+            padding: '12px 16px',
           }}
         >
           <button

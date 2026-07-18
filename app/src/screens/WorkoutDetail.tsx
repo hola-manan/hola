@@ -113,7 +113,8 @@ export function WorkoutDetail() {
   })
 
   return (
-    <div style={{ padding: '62px 20px 24px' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '62px 0 0' }}>
+      <div style={{ padding: '0 20px' }}>
       <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.14em', color: '#5a6270' }}>
         REPORT{w.cycleDay ? ` · ${w.cycleDay.toUpperCase()}` : ''} ·{' '}
         {date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
@@ -137,6 +138,8 @@ export function WorkoutDetail() {
         {prevComparable &&
           ` · compared to ${new Date(prevComparable.startedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`}
       </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 24px' }}>
 
       {rmRows.length > 0 && (
         <div
@@ -324,6 +327,7 @@ export function WorkoutDetail() {
         <Btn variant="danger" onClick={remove}>
           Delete
         </Btn>
+      </div>
       </div>
     </div>
   )

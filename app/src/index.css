@@ -53,12 +53,16 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* full-height app with safe areas for standalone PWA (viewport-fit=cover
-   draws under the OS status bar — the top inset keeps content clear of it) */
+/* Fixed-height app shell with safe areas for standalone PWA (viewport-fit=cover
+   draws under the OS status bar — the top inset keeps content clear of it).
+   The body never scrolls: each screen scrolls its own content region, so
+   headers and the tab bar stay pinned. */
 #root {
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
 }
 
 input[type='number'] {

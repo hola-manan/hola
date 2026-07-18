@@ -186,11 +186,12 @@ export function WorkoutScreen() {
   return (
     <div
       style={{
-        minHeight: '100dvh',
+        height: '100%',
         background: '#0b0d10',
         display: 'flex',
         flexDirection: 'column',
         paddingTop: 62,
+        boxSizing: 'border-box',
       }}
     >
       {/* header bar */}
@@ -242,7 +243,7 @@ export function WorkoutScreen() {
         </button>
       </div>
 
-      <div style={{ padding: '12px 16px 96px', flex: 1 }}>
+      <div style={{ padding: '12px 16px 60px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {/* session meta */}
         <div style={{ display: 'flex', gap: 14, fontFamily: MONO, fontSize: 11, color: '#5a6270' }}>
           <span>

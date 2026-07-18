@@ -32,8 +32,8 @@ export default function App() {
   const onWorkoutScreen = location.pathname === '/workout'
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
-      <main style={{ flex: 1, paddingBottom: 112, position: 'relative' }}>
+    <div className="mx-auto flex h-full max-w-lg flex-col">
+      <main style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/workout" element={<WorkoutScreen />} />

@@ -36,9 +36,10 @@ export function ProfileScreen() {
   const latestWeight = profile.bodyweight[profile.bodyweight.length - 1]
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 20px 30px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Profile</div>
-      
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px', fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Profile</div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 30px', display: 'flex', flexDirection: 'column' }}>
+
       <div style={{ display: 'flex', gap: 14, marginTop: 12, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: MONO, fontSize: 15 }}>{profile.heightCm ?? '—'}</div>
@@ -242,6 +243,7 @@ export function ProfileScreen() {
         <button onClick={() => signOut()} style={{ width: '100%', background: 'none', border: '1px solid rgba(224,89,107,.4)', borderRadius: 9, padding: '12px 0', color: '#e0596b', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
           Sign out
         </button>
+      </div>
       </div>
     </div>
   )

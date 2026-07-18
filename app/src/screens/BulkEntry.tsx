@@ -90,14 +90,14 @@ export function BulkEntry() {
   }
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 0 0', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 0 0', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
         <button onClick={() => navigate(-1)} style={{ fontSize: 13, color: '#8b93a0', background: 'none', border: 'none', padding: 0 }}>Cancel</button>
         <span style={{ fontWeight: 600, fontSize: 15 }}>Add past workout</span>
         <button onClick={save} disabled={!canSave} style={{ fontSize: 13, color: canSave ? '#c8f04b' : '#5a6270', fontWeight: 600, background: 'none', border: 'none', padding: 0 }}>Save</button>
       </div>
 
-      <div style={{ padding: '14px 20px', flex: 1, overflow: 'auto' }}>
+      <div style={{ padding: '14px 20px 30px', flex: 1, minHeight: 0, overflow: 'auto' }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1.4, background: '#14171c', border: '1px solid rgba(255,255,255,.1)', borderRadius: 9, padding: '10px 12px' }}>
             <div style={{ fontSize: 9.5, color: '#5a6270', fontFamily: MONO }}>DATE</div>

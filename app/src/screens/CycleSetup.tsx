@@ -46,11 +46,14 @@ export function CycleSetup() {
     presets.filter((p) => p.cycleDay?.toLowerCase() === day.toLowerCase())
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 20px 30px' }}>
-      <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Cycle</div>
-      <div style={{ fontSize: 12, color: '#8b93a0', marginTop: 4 }}>
-        {days.length ? `${days.length}-day rotation` : 'Define your rotation'} · advances daily at midnight
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px' }}>
+        <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Cycle</div>
+        <div style={{ fontSize: 12, color: '#8b93a0', marginTop: 4 }}>
+          {days.length ? `${days.length}-day rotation` : 'Define your rotation'} · advances daily at midnight
+        </div>
       </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 30px' }}>
 
       {!days.length && (
         <div style={{ marginTop: 24 }}>
@@ -159,6 +162,7 @@ export function CycleSetup() {
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }

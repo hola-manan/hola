@@ -52,7 +52,8 @@ export function Exercises() {
   }, [exerciseList, q, muscle, stats])
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 20px 30px' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>Library</div>
         <button onClick={() => setAdding(true)} style={{ fontSize: 12, color: '#c8f04b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
@@ -94,7 +95,9 @@ export function Exercises() {
           </button>
         ))}
       </div>
+      </div>
 
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 30px' }}>
       <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', color: '#5a6270', marginTop: 16 }}>
         {muscle ? `${muscle.toUpperCase()} · ` : ''}{results.length} EXERCISES · SORTED BY LAST USED
       </div>
@@ -147,6 +150,8 @@ export function Exercises() {
           )
         })}
         {!results.length && <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#5a6270' }}>No exercises match.</div>}
+      </div>
+
       </div>
 
       {adding && (

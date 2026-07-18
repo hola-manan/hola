@@ -85,7 +85,8 @@ export function Summary() {
   }
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 20px 30px' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px' }}>
       <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.14em', color: '#5a6270' }}>
         WEEKLY SUMMARY · WK {isoWeek(now)} · {formatDateRange()}
       </div>
@@ -98,6 +99,8 @@ export function Summary() {
           'On target this week'
         )}
       </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 30px' }}>
       <div style={{ display: 'flex', gap: 14, marginTop: 12, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: MONO, fontSize: 15 }}>{trainingDays ? `${thisWeek.length}/${trainingDays}` : String(thisWeek.length)}</div>
@@ -200,6 +203,7 @@ export function Summary() {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }

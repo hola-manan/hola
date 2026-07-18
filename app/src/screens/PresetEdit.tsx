@@ -72,8 +72,8 @@ export function PresetEdit() {
   const cycleDays = cycle ? [...new Set(cycle.days.filter((d) => d.toLowerCase() !== 'rest'))] : []
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', paddingTop: 62, paddingBottom: 30 }}>
-      <div style={{ padding: '10px 20px 0', flex: 1 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: 62, boxSizing: 'border-box' }}>
+      <div style={{ padding: '10px 20px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.14em', color: '#c8f04b' }}>
@@ -103,7 +103,9 @@ export function PresetEdit() {
             </button>
           )}
         </div>
+      </div>
 
+      <div style={{ padding: '0 20px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div style={{ marginTop: 20, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: 14 }}>
           <input
             placeholder="Preset name (e.g. Push A)"
@@ -227,12 +229,10 @@ export function PresetEdit() {
       </div>
 
       <div
-        className="sticky bottom-0"
         style={{
           background: '#101318',
           borderTop: '1px solid rgba(255,255,255,.08)',
-          padding: '12px 16px max(30px, env(safe-area-inset-bottom))',
-          marginTop: 20,
+          padding: '12px 16px',
         }}
       >
         <button

@@ -64,7 +64,8 @@ export function Home() {
   const eyebrowDate = `${now.toLocaleDateString(undefined, { weekday: 'short' })} ${now.getDate()} ${now.toLocaleDateString(undefined, { month: 'short' })}`.toUpperCase()
 
   return (
-    <div style={{ padding: '72px 20px 0' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '72px 0 0' }}>
+      <div style={{ padding: '0 20px' }}>
       {/* eyebrow row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '.14em', color: '#5a6270', whiteSpace: 'nowrap' }}>
@@ -80,7 +81,7 @@ export function Home() {
         </Link>
       </div>
 
-      {cycle && dayLabel ? (
+      {cycle && dayLabel && (
         <>
           <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 46, lineHeight: 1.02, marginTop: 10 }}>
             {isRestDay(dayLabel) ? 'Rest Day' : `${dayLabel} Day`}
@@ -90,9 +91,15 @@ export function Home() {
             {lastSameDay &&
               ` · last ${dayLabel} was ${new Date(lastSameDay.startedAt).toLocaleDateString(undefined, { weekday: 'short' })}, ${Math.max(1, Math.round((Date.now() - lastSameDay.startedAt) / 86_400_000))} days ago`}
           </div>
+        </>
+      )}
+      </div>
 
-          {/* cycle strip — tap to edit */}
-          <Link to="/cycle" style={{ display: 'flex', gap: 5, marginTop: 16 }}>
+      {/* content layer scrolls under the pinned header */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 24px' }}>
+      {cycle && dayLabel ? (
+        /* cycle strip — tap to edit */
+        <Link to="/cycle" style={{ display: 'flex', gap: 5, marginTop: 16 }}>
             {cycle.days.map((d, i) => {
               const pos = cycle.pointer % cycle.days.length
               const isToday = i === pos
@@ -153,7 +160,6 @@ export function Home() {
               )
             })}
           </Link>
-        </>
       ) : (
         <div style={{ background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: 14, marginTop: 16 }}>
           <p style={{ fontSize: 13, color: '#8b93a0', margin: 0, lineHeight: 1.4 }}>
@@ -302,6 +308,7 @@ export function Home() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

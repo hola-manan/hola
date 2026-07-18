@@ -18,14 +18,14 @@ export function Presets() {
   }
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 20px 30px', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '62px 20px 30px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <button onClick={() => navigate(-1)} style={{ fontSize: 13, color: '#8b93a0', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Cancel</button>
         <span style={{ fontWeight: 600, fontSize: 15 }}>Presets</span>
         <button onClick={() => navigate('/presets/new')} style={{ fontSize: 13, color: '#c8f04b', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>＋ New</button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {presets.length ? (
           presets.map((p) => (
             <div key={p.id} style={{ marginBottom: 10, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '12px 14px' }}>

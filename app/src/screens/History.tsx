@@ -68,13 +68,13 @@ export function History() {
   }
 
   return (
-    <div style={{ minHeight: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '0 20px', flex: 1, overflow: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>History</div>
-          <span style={{ fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>{completed.length} WORKOUTS</span>
-        </div>
-        
+    <div style={{ height: '100%', background: '#0b0d10', color: '#e9ecef', fontFamily: SANS, boxSizing: 'border-box', padding: '72px 0 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div style={{ fontFamily: CONDENSED, fontWeight: 700, fontSize: 32 }}>History</div>
+        <span style={{ fontFamily: MONO, fontSize: 10.5, color: '#5a6270' }}>{completed.length} WORKOUTS</span>
+      </div>
+      <div style={{ padding: '0 20px 30px', flex: 1, minHeight: 0, overflow: 'auto' }}>
+
         {completed.length > 0 && (
           <div style={{ display: 'flex', gap: 14, marginTop: 12, background: '#14171c', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px 14px' }}>
             <div style={{ flex: 1 }}>
