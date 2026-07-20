@@ -68,11 +68,12 @@ async function fetchWithAuth(
         return days
       } catch (e) {
         if (!(e instanceof ZeppAuthError) || refreshed) throw e
-        // Dead app token: renew off the login token; if that's dead too, log in fresh.
+        // Dead app token: renew off the login token; if renewal fails for ANY reason
+        // (login token also expired -> Zepp 404s, auth reject, transient error), the
+        // cached credentials are unusable, so log in fresh.
         try {
           tokens = await renewAppToken(tokens)
-        } catch (e2) {
-          if (!(e2 instanceof ZeppAuthError)) throw e2
+        } catch {
           tokens = await loginWithPassword(creds.email, creds.password)
         }
         refreshed = true
