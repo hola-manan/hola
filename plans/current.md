@@ -1,76 +1,96 @@
-# Zepp reconnect durability: auto-fresh-login when token renewal fails
+# Add 3 missing exercises to the shared catalog
 
 **Standing instructions:** Implement this plan exactly. Do not touch anything outside the project directory; if an out-of-project need is discovered mid-run, list it at the end of your response instead of doing it. Do not commit.
 
-## Problem (observed in prod 2026-07-20)
+## Context
 
-The nightly Zepp sync got stuck failing with `api_error: "zepp app_tokens failed:
-HTTP 404"`. Root cause is in the recovery chain in
-`app/functions/src/zeppSync.ts` → `fetchWithAuth`:
+Three movements the user trains have no catalog entry, so they could only be logged
+as unmapped custom exercises. Promote them to the shared catalog so they are
+first-class (searchable in the picker, known to the backend AI context). Follow the
+exact pattern already used for `bulgarian-split-squat-bodyweight` — a hand-written
+entry in `app/scripts/curate.mjs` that is kept across regenerations, plus a matching
+entry in `app/functions/src/catalog.json`.
 
-```ts
-try {
-  tokens = await renewAppToken(tokens)
-} catch (e2) {
-  if (!(e2 instanceof ZeppAuthError)) throw e2   // <-- bug
-  tokens = await loginWithPassword(creds.email, creds.password)
-}
+## Changes
+
+### 1. `app/scripts/curate.mjs`
+
+In the "Hand-written entries with no good source in the db (kept across regenerations)"
+block (the `exercises.push({ ... })` calls near the bottom, right after the existing
+`bulgarian-split-squat-bodyweight` push), add THREE more `exercises.push({ ... })`
+entries with this exact shape (id, name, primaryMuscles, secondaryMuscles, equipment,
+instructions, images). Use valid `MuscleGroup` string values and `images: []`:
+
+```js
+exercises.push({
+  id: 'single-arm-lat-pulldown-cable',
+  name: 'Lat Pulldown (Single Arm)',
+  primaryMuscles: ['lats'],
+  secondaryMuscles: ['biceps', 'upper back', 'front delts'],
+  equipment: 'cable',
+  instructions: [
+    'Attach a single handle to the high pulley of a lat pulldown or cable station and sit or kneel facing it.',
+    'Grip the handle with one hand, arm fully extended overhead, and brace your core.',
+    'Pull the handle down toward the side of your chest, driving your elbow down and back and squeezing the lat.',
+    'Control the handle back to the fully stretched overhead position. Complete all reps, then switch arms.',
+  ],
+  images: [],
+})
+
+exercises.push({
+  id: 'iso-lateral-chest-press-machine',
+  name: 'Iso-Lateral Chest Press (Machine)',
+  primaryMuscles: ['chest'],
+  secondaryMuscles: ['front delts', 'triceps'],
+  equipment: 'machine',
+  instructions: [
+    'Sit in the iso-lateral chest press machine with your back flat against the pad and grip the handles at chest level.',
+    'Press the handles forward until your arms are nearly straight, keeping your shoulders down.',
+    'Squeeze your chest at the top, then control the handles back to the starting position without letting the weight rest.',
+  ],
+  images: [],
+})
+
+exercises.push({
+  id: 'reverse-curl-dumbbell',
+  name: 'Reverse Curl (Dumbbell)',
+  primaryMuscles: ['forearms'],
+  secondaryMuscles: ['biceps'],
+  equipment: 'dumbbell',
+  instructions: [
+    'Stand holding a dumbbell in each hand with a pronated (palms-down) grip, arms hanging at your sides.',
+    'Keeping your upper arms pinned to your sides, curl the dumbbells up by flexing at the elbow.',
+    'Squeeze the forearms and brachialis at the top, then lower under control to the start.',
+  ],
+  images: [],
+})
 ```
 
-When the cached **app token** dies, we renew off the **login token**. But if the
-login token is *also* expired, Zepp's `app_tokens` endpoint returns **HTTP 404**,
-which `renewAppToken` maps to `ZeppApiError` (not `ZeppAuthError`). The gate above
-only falls back to a full `loginWithPassword` on `ZeppAuthError`, so a 404 is
-rethrown and the sync fails permanently — a human has to manually clear the cached
-token to recover.
+### 2. Regenerate `app/src/data/exercises.ts`
 
-The intent of this branch is: *"the cached tokens are unusable — get a completely
-fresh pair."* A 404 (or any renew failure) means exactly that. So the fix is to
-fall back to a fresh password login on **any** renew failure, not only auth errors.
+From `app/`, run `node scripts/curate.mjs`. It must complete without the `MISSING:`
+error and print a written-exercise count 3 higher than before. Confirm the three new
+ids appear in the regenerated `app/src/data/exercises.ts`.
 
-## Change (single edit, `app/functions/src/zeppSync.ts`)
+### 3. `app/functions/src/catalog.json`
 
-In `fetchWithAuth`, replace the inner renew/catch block so ANY renew failure falls
-through to a fresh login:
+Add the three entries to this JSON array as well, using the SAME id / name /
+primaryMuscles / secondaryMuscles / equipment as above. This file's entries carry
+only those five fields (no instructions/images) — match the shape of the existing
+entries in the file exactly. Keep the file valid JSON.
 
-```ts
-// Dead app token: renew off the login token; if renewal fails for ANY reason
-// (login token also expired -> Zepp 404s, auth reject, transient error), the
-// cached credentials are unusable, so log in fresh.
-try {
-  tokens = await renewAppToken(tokens)
-} catch {
-  tokens = await loginWithPassword(creds.email, creds.password)
-}
-```
+## Constraints
 
-- Remove the `if (!(e2 instanceof ZeppAuthError)) throw e2` gate entirely.
-- The surrounding `for (;;)` loop already sets `refreshed = true` after this block,
-  so there is no infinite-loop risk: if the subsequent `fetchDays` still fails, the
-  outer `if (!(e instanceof ZeppAuthError) || refreshed) throw e` rethrows.
-- `ZeppAuthError` may no longer be referenced in this file after the edit. If so,
-  remove it from the `./zepp` import to keep the build/lint clean. If it is still
-  used elsewhere in the file, leave the import as-is. Do not touch anything else.
+- Change ONLY `app/scripts/curate.mjs`, `app/src/data/exercises.ts` (via the script),
+  and `app/functions/src/catalog.json`. Do not modify other files.
+- Do NOT touch anything outside this project directory.
+- Do NOT run `firebase deploy`, do NOT commit. Claude handles deploy + commit.
 
-## Constraints for the implementing agent
+## Verification (run in `app/`)
 
-- Change ONLY `app/functions/src/zeppSync.ts` (and its import line if `ZeppAuthError`
-  becomes unused there). Do not modify `zepp.ts`, error classes, endpoints, or the
-  encrypted login flow — those all work.
-- Do NOT touch anything outside this project directory. If any out-of-repo need is
-  discovered, list it at the end of your response instead of doing it.
-- Do NOT run `firebase deploy`, do NOT commit. Claude handles deploy + commit after
-  review.
-
-## Verification (run in `app/functions/`)
-
-- `npm run build` (tsc) must pass with no errors.
-- If there is a lint script, run it; the unused-import case must not warn.
-- `npx vitest run zepp` (or the functions test command) — existing `zepp.test.ts`
-  must still pass.
-
-## Out-of-repo follow-ups (Claude does these after verifying the diff)
-
-- Deploy: `firebase deploy --only functions:zeppNightlySync,functions:syncZepp`
-  from `hola/app`.
-- No credential or scheduler changes needed.
+- `node scripts/curate.mjs` runs clean, count +3.
+- `npx tsc --noEmit -p tsconfig.app.json` passes.
+- `npx vitest run` passes.
+- `npm run build` passes.
+- Grep confirms all three ids exist in BOTH `src/data/exercises.ts` and
+  `functions/src/catalog.json`.
