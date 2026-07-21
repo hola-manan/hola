@@ -212,6 +212,49 @@ exercises.push({
   ],
 })
 
+exercises.push({
+  id: 'single-arm-lat-pulldown-cable',
+  name: 'Lat Pulldown (Single Arm)',
+  primaryMuscles: ['lats'],
+  secondaryMuscles: ['biceps', 'upper back', 'front delts'],
+  equipment: 'cable',
+  instructions: [
+    'Attach a single handle to the high pulley of a lat pulldown or cable station and sit or kneel facing it.',
+    'Grip the handle with one hand, arm fully extended overhead, and brace your core.',
+    'Pull the handle down toward the side of your chest, driving your elbow down and back and squeezing the lat.',
+    'Control the handle back to the fully stretched overhead position. Complete all reps, then switch arms.',
+  ],
+  images: [],
+})
+
+exercises.push({
+  id: 'iso-lateral-chest-press-machine',
+  name: 'Iso-Lateral Chest Press (Machine)',
+  primaryMuscles: ['chest'],
+  secondaryMuscles: ['front delts', 'triceps'],
+  equipment: 'machine',
+  instructions: [
+    'Sit in the iso-lateral chest press machine with your back flat against the pad and grip the handles at chest level.',
+    'Press the handles forward until your arms are nearly straight, keeping your shoulders down.',
+    'Squeeze your chest at the top, then control the handles back to the starting position without letting the weight rest.',
+  ],
+  images: [],
+})
+
+exercises.push({
+  id: 'reverse-curl-dumbbell',
+  name: 'Reverse Curl (Dumbbell)',
+  primaryMuscles: ['forearms'],
+  secondaryMuscles: ['biceps'],
+  equipment: 'dumbbell',
+  instructions: [
+    'Stand holding a dumbbell in each hand with a pronated (palms-down) grip, arms hanging at your sides.',
+    'Keeping your upper arms pinned to your sides, curl the dumbbells up by flexing at the elbow.',
+    'Squeeze the forearms and brachialis at the top, then lower under control to the start.',
+  ],
+  images: [],
+})
+
 const header = `// Curated exercise catalog seeded from free-exercise-db (public domain).
 // https://github.com/yuhonas/free-exercise-db — regenerate via scripts/curate.mjs
 import type { Exercise } from '../types'
@@ -219,7 +262,7 @@ import type { Exercise } from '../types'
 export const EXERCISES: Exercise[] = `
 
 writeFileSync(
-  '/home/user/hola/app/src/data/exercises.ts',
+  new URL('../src/data/exercises.ts', import.meta.url),
   header + JSON.stringify(exercises, null, 2) + '\n',
 )
 console.log(`wrote ${exercises.length} exercises`)

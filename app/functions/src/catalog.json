@@ -956,5 +956,41 @@
   ],
   "secondaryMuscles": [],
   "equipment": "barbell"
+ },
+ {
+  "id": "single-arm-lat-pulldown-cable",
+  "name": "Lat Pulldown (Single Arm)",
+  "primaryMuscles": [
+   "lats"
+  ],
+  "secondaryMuscles": [
+   "biceps",
+   "upper back",
+   "front delts"
+  ],
+  "equipment": "cable"
+ },
+ {
+  "id": "iso-lateral-chest-press-machine",
+  "name": "Iso-Lateral Chest Press (Machine)",
+  "primaryMuscles": [
+   "chest"
+  ],
+  "secondaryMuscles": [
+   "front delts",
+   "triceps"
+  ],
+  "equipment": "machine"
+ },
+ {
+  "id": "reverse-curl-dumbbell",
+  "name": "Reverse Curl (Dumbbell)",
+  "primaryMuscles": [
+   "forearms"
+  ],
+  "secondaryMuscles": [
+   "biceps"
+  ],
+  "equipment": "dumbbell"
  }
 ]

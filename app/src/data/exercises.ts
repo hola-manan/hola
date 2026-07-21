@@ -1486,28 +1486,6 @@ export const EXERCISES: Exercise[] = [
     ]
   },
   {
-    "id": "bulgarian-split-squat-bodyweight",
-    "name": "Bulgarian Split Squat (Bodyweight)",
-    "primaryMuscles": [
-      "quads"
-    ],
-    "secondaryMuscles": [
-      "glutes",
-      "hamstrings"
-    ],
-    "equipment": "bodyweight",
-    "instructions": [
-      "Stand about 2 to 3 feet in front of a bench with your back to it, and place the top of one foot on the bench behind you.",
-      "Keep your torso upright and your front knee in line with your foot. This will be your starting position.",
-      "Descend by flexing the front knee and hip, lowering until the front thigh is about parallel to the floor. The rear knee should travel toward the ground.",
-      "Drive through the heel of the front foot to return to the starting position. Complete all reps, then switch legs."
-    ],
-    "images": [
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/0.jpg",
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/1.jpg"
-    ]
-  },
-  {
     "id": "bulgarian-split-squat-barbell",
     "name": "Bulgarian Split Squat (Barbell)",
     "primaryMuscles": [
@@ -1888,5 +1866,82 @@ export const EXERCISES: Exercise[] = [
       "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Down_Wrist_Curl_Over_A_Bench/0.jpg",
       "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Down_Wrist_Curl_Over_A_Bench/1.jpg"
     ]
+  },
+  {
+    "id": "bulgarian-split-squat-bodyweight",
+    "name": "Bulgarian Split Squat (Bodyweight)",
+    "primaryMuscles": [
+      "quads"
+    ],
+    "secondaryMuscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight",
+    "instructions": [
+      "Stand about 2 to 3 feet in front of a bench with your back to it, and place the top of one foot on the bench behind you.",
+      "Keep your torso upright and your front knee in line with your foot. This will be your starting position.",
+      "Descend by flexing the front knee and hip, lowering until the front thigh is about parallel to the floor. The rear knee should travel toward the ground.",
+      "Drive through the heel of the front foot to return to the starting position. Complete all reps, then switch legs."
+    ],
+    "images": [
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/0.jpg",
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squats/1.jpg"
+    ]
+  },
+  {
+    "id": "single-arm-lat-pulldown-cable",
+    "name": "Lat Pulldown (Single Arm)",
+    "primaryMuscles": [
+      "lats"
+    ],
+    "secondaryMuscles": [
+      "biceps",
+      "upper back",
+      "front delts"
+    ],
+    "equipment": "cable",
+    "instructions": [
+      "Attach a single handle to the high pulley of a lat pulldown or cable station and sit or kneel facing it.",
+      "Grip the handle with one hand, arm fully extended overhead, and brace your core.",
+      "Pull the handle down toward the side of your chest, driving your elbow down and back and squeezing the lat.",
+      "Control the handle back to the fully stretched overhead position. Complete all reps, then switch arms."
+    ],
+    "images": []
+  },
+  {
+    "id": "iso-lateral-chest-press-machine",
+    "name": "Iso-Lateral Chest Press (Machine)",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "front delts",
+      "triceps"
+    ],
+    "equipment": "machine",
+    "instructions": [
+      "Sit in the iso-lateral chest press machine with your back flat against the pad and grip the handles at chest level.",
+      "Press the handles forward until your arms are nearly straight, keeping your shoulders down.",
+      "Squeeze your chest at the top, then control the handles back to the starting position without letting the weight rest."
+    ],
+    "images": []
+  },
+  {
+    "id": "reverse-curl-dumbbell",
+    "name": "Reverse Curl (Dumbbell)",
+    "primaryMuscles": [
+      "forearms"
+    ],
+    "secondaryMuscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell",
+    "instructions": [
+      "Stand holding a dumbbell in each hand with a pronated (palms-down) grip, arms hanging at your sides.",
+      "Keeping your upper arms pinned to your sides, curl the dumbbells up by flexing at the elbow.",
+      "Squeeze the forearms and brachialis at the top, then lower under control to the start."
+    ],
+    "images": []
   }
 ]
