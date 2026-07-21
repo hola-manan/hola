@@ -1943,5 +1943,25 @@ export const EXERCISES: Exercise[] = [
       "Squeeze the forearms and brachialis at the top, then lower under control to the start."
     ],
     "images": []
+  },
+  {
+    "id": "chest-supported-row-dumbbell",
+    "name": "Chest-Supported Row (Dumbbell)",
+    "primaryMuscles": [
+      "upper back"
+    ],
+    "secondaryMuscles": [
+      "lats",
+      "rear delts",
+      "biceps"
+    ],
+    "equipment": "dumbbell",
+    "instructions": [
+      "Set an incline bench to about 30–45 degrees and lie face-down with your chest against the pad, a dumbbell in each hand hanging straight down.",
+      "Let your arms extend fully and your shoulder blades relax at the bottom. This is the starting position.",
+      "Row the dumbbells up toward your hips, driving your elbows back and squeezing your shoulder blades together at the top.",
+      "Lower the dumbbells under control to the fully stretched position without letting your chest come off the pad, and repeat."
+    ],
+    "images": []
   }
 ]

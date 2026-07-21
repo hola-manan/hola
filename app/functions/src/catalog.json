@@ -992,5 +992,18 @@
    "biceps"
   ],
   "equipment": "dumbbell"
+ },
+ {
+  "id": "chest-supported-row-dumbbell",
+  "name": "Chest-Supported Row (Dumbbell)",
+  "primaryMuscles": [
+   "upper back"
+  ],
+  "secondaryMuscles": [
+   "lats",
+   "rear delts",
+   "biceps"
+  ],
+  "equipment": "dumbbell"
  }
 ]
