@@ -8,7 +8,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:embeddings": "node scripts/build-embeddings.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.16.0",
