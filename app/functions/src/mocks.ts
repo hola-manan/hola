@@ -1,7 +1,7 @@
 // Deterministic mock "coach" used in the emulator: grounded in the real
 // context data so e2e tests can assert grounding, no LLM required.
 
-import { e1rmTable, muscleSetCounts, type Workout } from './domain'
+import { e1rmTable, muscleSetCounts, type Workout, type KnowledgeCard } from './domain'
 import { CATALOG_BY_ID, type UserData } from './context'
 import { musclesForDay } from './creator'
 
@@ -55,13 +55,28 @@ export function mockWeeklySummary(data: UserData): string {
   )
 }
 
-export function mockChat(data: UserData, lastMessage: string): string {
+export function mockChat(
+  data: UserData,
+  lastMessage: string,
+  cards: KnowledgeCard[] = []
+): string {
   const rms = e1rmTable(data.workouts)
   const needle = lastMessage.toLowerCase()
+  let reply = ''
+  let found = false
   for (const [id, rm] of rms) {
     if (needle.includes(name(id).toLowerCase().split(' (')[0].toLowerCase())) {
-      return `[mock coach] Your current estimated 1RM on ${name(id)} is ${rm.toFixed(1)} kg, based on ${data.workouts.length} logged workouts.`
+      reply = `[mock coach] Your current estimated 1RM on ${name(id)} is ${rm.toFixed(1)} kg, based on ${data.workouts.length} logged workouts.`
+      found = true
+      break
     }
   }
-  return `[mock coach] You have ${data.workouts.length} workouts logged and ${rms.size} exercises with strength estimates. Ask about a specific lift for details.`
+  if (!found) {
+    reply = `[mock coach] You have ${data.workouts.length} workouts logged and ${rms.size} exercises with strength estimates. Ask about a specific lift for details.`
+  }
+  if (cards.length > 0) {
+    reply += `\nSources: ${cards.map((c) => c.sources[0].ref).join('; ')}`
+  }
+  return reply
 }
+

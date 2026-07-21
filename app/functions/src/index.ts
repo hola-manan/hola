@@ -9,6 +9,7 @@ import { mockChat, mockReport, mockWeeklySummary } from './mocks'
 import { defineSecret } from 'firebase-functions/params'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { syncZeppForUser, runNightlySync } from './zeppSync'
+import { retrieveCards, formatScienceBlock } from './retrieval'
 
 const zeppEmail = defineSecret('ZEPP_EMAIL')
 const zeppPassword = defineSecret('ZEPP_PASSWORD')
@@ -18,7 +19,8 @@ const db = getFirestore()
 
 const SYSTEM = `You are a knowledgeable, encouraging personal strength coach inside a gym tracking app.
 Ground every statement in the provided context (workouts, estimated 1RMs, cycle, readiness, profile).
-Always respect the MUST-RESPECT NOTES. Weights are in kg. Be concrete and concise; no generic filler.`
+Always respect the MUST-RESPECT NOTES. Weights are in kg. Be concrete and concise; no generic filler. When SCIENCE REFERENCES are provided, prefer them for exercise-science claims and cite them; never fabricate citations.`
+
 
 async function loadUserData(uid: string): Promise<UserData> {
   const userRef = db.collection('users').doc(uid)
@@ -111,19 +113,26 @@ export const coachChat = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'messages must end with a user message')
   }
   const data = await loadUserData(uid)
+  const lastUserText = trimmed[trimmed.length - 1].text
+  const cards = await retrieveCards(lastUserText)
 
   if (usingMock) {
-    return { text: mockChat(data, trimmed[trimmed.length - 1].text) }
+    return { text: mockChat(data, lastUserText, cards) }
   }
   const transcript = trimmed
     .map((m) => `${m.role === 'user' ? 'USER' : 'COACH'}: ${m.text.slice(0, 2000)}`)
     .join('\n')
-  const text = await generateText(
-    SYSTEM,
-    `${buildContext(data)}\n\n=== CONVERSATION ===\n${transcript}\n\nReply as COACH (max ~150 words).`,
-  )
+  const scienceBlock = formatScienceBlock(cards)
+  const prompt = [
+    buildContext(data),
+    scienceBlock,
+    `=== CONVERSATION ===\n${transcript}\n\nReply as COACH (max ~150 words). Where a SCIENCE REFERENCE supports a claim, ground your answer in it and cite it inline like (Schoenfeld 2017); if you list sources, use only the provided references — never invent citations or cite a reference you didn't use.`
+  ].filter(Boolean).join('\n\n')
+
+  const text = await generateText(SYSTEM, prompt)
   return { text }
 })
+
 
 export const createWorkout = onCall(async (req) => {
   const uid = requireAuth(req.auth?.uid)

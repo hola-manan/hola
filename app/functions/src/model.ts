@@ -48,3 +48,23 @@ export async function generateJson(system: string, user: string): Promise<unknow
   if (!text) throw new Error('empty model response')
   return JSON.parse(text)
 }
+
+export async function embedText(
+  text: string,
+  { taskType, model, dim }: { taskType: any; model: string; dim: number }
+): Promise<number[]> {
+  const res = await genai().models.embedContent({
+    model,
+    contents: [text],
+    config: {
+      taskType,
+      outputDimensionality: dim,
+    },
+  })
+  const values = res.embeddings?.[0]?.values
+  if (!values || !values.length) {
+    throw new Error('empty embedding response')
+  }
+  return values
+}
+
