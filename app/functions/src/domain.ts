@@ -33,6 +33,19 @@ export interface CatalogEntry {
   secondaryMuscles: string[]
   equipment: string
 }
+export type KnowledgeDomain = 'hypertrophy' | 'programming' | 'recovery' | 'nutrition'
+export type EvidenceLevel = 'strong' | 'moderate' | 'emerging'
+export interface KnowledgeSource { ref: string; url: string }
+export interface KnowledgeCard {
+  id: string
+  title: string
+  domain: KnowledgeDomain
+  tags: string[]
+  muscles: string[]
+  evidence: EvidenceLevel
+  sources: KnowledgeSource[]
+  body: string
+}
 export interface Cycle {
   days: string[]
   pointer: number

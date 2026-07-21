@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "emulators": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,functions --project demo-hola-gym",
-    "e2e": "node e2e/smoke.mjs"
+    "e2e": "node e2e/smoke.mjs",
+    "build:knowledge": "node scripts/build-knowledge.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",

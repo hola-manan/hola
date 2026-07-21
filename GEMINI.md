@@ -10,6 +10,7 @@ Mobile-first PWA gym tracker (React 19 + Vite + TypeScript + Firebase). Tracks w
 ## Layout
 - `app/` — the PWA. Source in `app/src`: `screens/` (one file per route), `components/`, `lib/` (pure domain logic, unit-tested), `data/exercises.ts` (curated catalog, single primary muscle per exercise), `types.ts`, `store.tsx`, `App.tsx` (routes).
 - `app/functions/` — Firebase Functions (AI endpoints). Mirrors some frontend logic by copy (e.g. `readinessRule.ts`, and `volumeTargets.ts` mirroring the ranges in `app/src/lib/targets.ts`) because functions cannot import app src.
+- `app/functions/src/knowledge/` — hand-authored, cited "principle cards" of training science (domains: `hypertrophy`, `programming`, `recovery`, `nutrition`), one `.md` per card with YAML frontmatter (see the dir's `README.md` for the schema and authoring rules). Source of truth for the knowledge corpus. `app/scripts/build-knowledge.mjs` compiles them into `app/functions/src/knowledge.json` (bundled + validated), exposed typed via `app/functions/src/knowledge.ts` (`KnowledgeCard` type in `domain.ts`). This is RAG *groundwork*: the corpus is loaded but retrieval/embedding into the coach prompts is NOT yet wired.
 - `docs/feature-spec.md` — domain vocabulary and feature spec.
 
 ## Conventions
@@ -20,3 +21,4 @@ Mobile-first PWA gym tracker (React 19 + Vite + TypeScript + Firebase). Tracks w
 ## Commands
 - App: `cd app` then `npm test` (vitest), `npm run build` (tsc + vite), `npm run lint` (oxlint), `npm run dev`.
 - Functions: `cd app/functions` then `npm test`, `npm run build`.
+- Knowledge corpus: after editing any card under `functions/src/knowledge/`, regenerate with `cd app && npm run build:knowledge` (validates + rewrites `knowledge.json`); `functions` vitest `knowledge.test.ts` guards the invariants.

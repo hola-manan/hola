@@ -1,0 +1,977 @@
+[
+  {
+    "id": "effective-rep-range",
+    "title": "Hypertrophy happens across a wide rep range",
+    "domain": "hypertrophy",
+    "tags": [
+      "rep-range",
+      "load",
+      "hypertrophy"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Grgic J, Ogborn D, Krieger JW. Strength and hypertrophy adaptations between low- vs. high-load resistance training. J Strength Cond Res 2017;31(12):3508–3523",
+        "url": "https://journals.lww.com/nsca-jscr/fulltext/2017/12000/strength_and_hypertrophy_adaptations_between_low_.31.aspx"
+      }
+    ],
+    "body": "**Claim:** Muscle can be built across a broad loading spectrum — roughly 5–30 reps per set —\nas long as sets are taken close to failure. There is no single \"hypertrophy rep range.\"\n\n**Evidence:** A meta-analysis found similar hypertrophy between low-load (>15 rep) and\nhigh-load (<15 rep) training when sets approached failure; load mattered for maximal\nstrength but not for growth (Schoenfeld 2017).\n\n**Takeaway:** Choose reps by practicality and joint comfort, not dogma. The 8–15 range is\nconvenient for most accessory work (enough load to be efficient, enough reps to be safe and\ncontrollable), but 5–8 and 15–30 both grow muscle when effort is high. This gives the coach\nfreedom to prescribe lighter, higher-rep work when an injury note or low readiness makes\nheavy loading unwise, without sacrificing hypertrophy."
+  },
+  {
+    "id": "full-rom-lengthened-position",
+    "title": "Full range of motion and training at long muscle lengths",
+    "domain": "hypertrophy",
+    "tags": [
+      "range-of-motion",
+      "lengthened",
+      "stretch",
+      "technique"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Ottinger CR, et al. Greater gastrocnemius muscle hypertrophy after partial range of motion training performed at long muscle lengths. J Strength Cond Res 2023;37(6):1231–1237",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/37015016/"
+      }
+    ],
+    "body": "**Claim:** Training through a full range of motion — and especially loading the muscle in\nits lengthened (stretched) position — tends to produce equal or greater hypertrophy than\nshort, partial reps done in the shortened position.\n\n**Evidence:** Partial reps performed at long muscle lengths produced greater gastrocnemius\ngrowth than full ROM, and clearly more than shortened-position partials, in a controlled\ntrial (Ottinger 2023); this aligns with a broader body of ROM research favouring the\nstretched position.\n\n**Takeaway:** Cue a full, controlled range with an emphasis on the deep/stretched portion\n(e.g. a deep stretch on RDLs, dips, calf raises, incline curls). When time or fatigue forces\npartials, bias them toward the lengthened end. The coach can flag consistently short ROM as\na likely reason a muscle is lagging despite adequate set counts."
+  },
+  {
+    "id": "junk-volume-diminishing-returns",
+    "title": "Diminishing returns and junk volume past the productive range",
+    "domain": "hypertrophy",
+    "tags": [
+      "volume",
+      "junk-volume",
+      "recovery",
+      "overreaching"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass. J Sports Sci 2017;35(11):1073–1082",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27433992/"
+      }
+    ],
+    "body": "**Claim:** Adding volume helps only up to a point. Past a muscle's productive range, extra\nsets yield little to no additional growth (\"junk volume\") while adding fatigue that can\nimpair recovery and subsequent sessions.\n\n**Evidence:** The volume dose-response curve flattens at higher weekly set counts; the\nincremental gain per set shrinks as volume climbs, and the highest volumes carry recovery\ncosts that can offset benefit (Schoenfeld 2017 and subsequent meta-regressions).\n\n**Takeaway:** More is not always better. The app's `MUSCLE_RANGES` encode an upper bound\nper muscle; the weekly-volume view flags a muscle as `OVER` when sets exceed it. When a\nmuscle is already at or above its range, the coach should not prescribe still more volume —\nredistribute sets to lagging muscles, or improve set quality (load, proximity to failure)\ninstead."
+  },
+  {
+    "id": "load-strength-specificity",
+    "title": "Heavy loads are specific to maximal strength",
+    "domain": "hypertrophy",
+    "tags": [
+      "strength",
+      "load",
+      "specificity",
+      "1rm"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Grgic J, Ogborn D, Krieger JW. Strength and hypertrophy adaptations between low- vs. high-load resistance training. J Strength Cond Res 2017;31(12):3508–3523",
+        "url": "https://journals.lww.com/nsca-jscr/fulltext/2017/12000/strength_and_hypertrophy_adaptations_between_low_.31.aspx"
+      },
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      }
+    ],
+    "body": "**Claim:** Maximal strength (1RM) is best developed with heavy loads — roughly ≥80% 1RM,\nin the 1–6 rep range — because strength adaptations are specific to the load and skill of\nlifting heavy.\n\n**Evidence:** While hypertrophy is load-agnostic, the same meta-analysis found clearly\ngreater 1RM gains from high-load training (Schoenfeld 2017); ACSM's position stand\nrecommends heavy loading for advanced strength progression (ACSM 2009).\n\n**Takeaway:** Match load to goal. If the user's goal is strength, program the main lifts\nheavy (low reps, longer rest, higher effort). If the goal is size, load can be flexible.\nThis distinction should shape the coach's weight prescriptions — an e1RM-derived %1RM for\nstrength intent, a wider load window for hypertrophy intent — and is why the app tracks\nestimated 1RM per exercise as the anchor for prescribing weights."
+  },
+  {
+    "id": "mechanical-tension-primary-driver",
+    "title": "Mechanical tension is the primary driver of hypertrophy",
+    "domain": "hypertrophy",
+    "tags": [
+      "mechanism",
+      "tension",
+      "hypertrophy",
+      "effort"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ. The mechanisms of muscle hypertrophy and their application to resistance training. J Strength Cond Res 2010;24(10):2857–2872",
+        "url": "https://journals.lww.com/nsca-jscr/fulltext/2010/10000/the_mechanisms_of_muscle_hypertrophy_and_their.40.aspx"
+      },
+      {
+        "ref": "Damas F, et al. J Physiol 2016;594(18):5209–5222",
+        "url": "https://physoc.onlinelibrary.wiley.com/doi/abs/10.1113/JP272472"
+      }
+    ],
+    "body": "**Claim:** High mechanical tension applied to a muscle through a challenging range of\nmotion is the dominant stimulus for hypertrophy. Metabolic stress and muscle damage are\nsecondary contributors, not requirements.\n\n**Evidence:** The classic three-mechanism model (Schoenfeld 2010) identifies mechanical\ntension, metabolic stress, and muscle damage — but subsequent work shows tension is\nprimary: hypertrophy tracks with hard, tension-producing sets, while damage is not the\nmediator of growth (Damas 2016).\n\n**Takeaway:** Program hard sets with meaningful load and full effort — that is what\ngenerates the tension that drives growth. Chasing \"the pump\" or soreness for their own sake\nis misguided; they are byproducts, not goals. This is why the coach should judge a session\nby hard working sets and progressive load, not by how sore or fatigued it felt."
+  },
+  {
+    "id": "metabolic-stress-secondary",
+    "title": "Metabolic stress is a secondary contributor",
+    "domain": "hypertrophy",
+    "tags": [
+      "mechanism",
+      "metabolic-stress",
+      "pump",
+      "technique"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ. The mechanisms of muscle hypertrophy and their application to resistance training. J Strength Cond Res 2010;24(10):2857–2872",
+        "url": "https://journals.lww.com/nsca-jscr/fulltext/2010/10000/the_mechanisms_of_muscle_hypertrophy_and_their.40.aspx"
+      }
+    ],
+    "body": "**Claim:** Metabolic stress (the \"burn\"/pump from accumulated metabolites in higher-rep,\nshorter-rest sets) can contribute to hypertrophy, but it is secondary to mechanical tension\nand not a target in its own right.\n\n**Evidence:** Schoenfeld's three-mechanism model lists metabolic stress alongside tension\nand damage; later evidence positions it as a modest, tension-dependent contributor rather\nthan an independent driver (Schoenfeld 2010).\n\n**Takeaway:** Higher-rep, shorter-rest \"pump\" work is a reasonable tool — especially for\nsmaller muscles and machine/isolation movements where loading heavy is awkward — but it\ncomplements, not replaces, heavier tension-producing work. The coach shouldn't prescribe\nburn-focused work as a substitute for progressive overload on the main lifts."
+  },
+  {
+    "id": "mps-adaptation-window",
+    "title": "How a training session turns into muscle",
+    "domain": "hypertrophy",
+    "tags": [
+      "mps",
+      "protein-synthesis",
+      "adaptation",
+      "recovery"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Damas F, et al. J Physiol 2016;594(18):5209–5222",
+        "url": "https://physoc.onlinelibrary.wiley.com/doi/abs/10.1113/JP272472"
+      },
+      {
+        "ref": "Areta JL, et al. Timing and distribution of protein ingestion during prolonged recovery from resistance exercise alters myofibrillar protein synthesis. J Physiol 2013;591(9):2319–2331",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/23459753/"
+      }
+    ],
+    "body": "**Claim:** A resistance session elevates muscle protein synthesis (MPS) for roughly 24–48 h\nafterward; growth is the net result of many such elevations exceeding breakdown over weeks,\nsupported by adequate protein intake.\n\n**Evidence:** MPS rises after training and, once early-program damage subsides, correlates\nwith hypertrophy (Damas 2016); protein feeding across the recovery window modulates the MPS\nresponse (Areta 2013).\n\n**Takeaway:** Growth is cumulative and slow — the outcome of consistent hard sessions plus\nsufficient protein, not any single workout. This frames realistic expectations: the coach\nshould point to multi-week trends (e1RM, volume) rather than session-to-session noise, and\nreinforce that the elevated-MPS window is best \"fed\" by hitting daily protein, not by any\nmagic post-workout timing (see nutrition cards)."
+  },
+  {
+    "id": "muscle-damage-doms-not-required",
+    "title": "Muscle damage and soreness are not the goal",
+    "domain": "hypertrophy",
+    "tags": [
+      "doms",
+      "muscle-damage",
+      "soreness",
+      "recovery"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Damas F, et al. Resistance training-induced changes in integrated myofibrillar protein synthesis are related to hypertrophy only after attenuation of muscle damage. J Physiol 2016;594(18):5209–5222",
+        "url": "https://physoc.onlinelibrary.wiley.com/doi/abs/10.1113/JP272472"
+      }
+    ],
+    "body": "**Claim:** Muscle damage — and the soreness (DOMS) that often accompanies it — is a\nside effect of training, not a driver of growth. You do not need to be sore to have trained\nproductively.\n\n**Evidence:** Early-program muscle protein synthesis was directed at *repairing* damage\nrather than building new tissue; hypertrophy tracked with protein synthesis only once damage\nwas attenuated (Damas 2016). Soreness reflects unaccustomed stimulus, not superior stimulus.\n\n**Takeaway:** Don't chase soreness or judge a session by how wrecked it felt. Novel\nexercises cause more DOMS without more growth. The coach should reassure users that reduced\nsoreness over weeks is normal adaptation, not lost progress, and should not add volume or\nnovelty just to \"feel it more.\" Judge progress by load, reps, and volume trends instead."
+  },
+  {
+    "id": "progressive-overload",
+    "title": "Progressive overload drives long-term adaptation",
+    "domain": "hypertrophy",
+    "tags": [
+      "progressive-overload",
+      "progression",
+      "adaptation"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      },
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass. J Sports Sci 2017;35(11):1073–1082",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27433992/"
+      }
+    ],
+    "body": "**Claim:** Muscles adapt to the demands placed on them, so the training stimulus must\ngradually increase over time. Progression can come from more load, more reps, more sets, or\nbetter technique/range — not load alone.\n\n**Evidence:** ACSM's progression position stand establishes systematically increasing\ndemand as the basis for continued gains; adding volume over time is one validated lever\n(Schoenfeld 2017), alongside load and rep progression.\n\n**Takeaway:** When last session's targets were hit cleanly, nudge the next session up —\nadd reps within the target range, then add load when the top of the range is reached (double\nprogression). This is precisely the rule the app's workout creator follows: \"nudge\nweights/reps up where the last comparable session hit its targets.\" The coach should ground\nprogression suggestions in the user's own last-session numbers, not generic increments."
+  },
+  {
+    "id": "proximity-to-failure-rir",
+    "title": "Proximity to failure and reps in reserve",
+    "domain": "hypertrophy",
+    "tags": [
+      "failure",
+      "rir",
+      "effort",
+      "intensity-of-effort"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Refalo MC, et al. Influence of resistance training proximity-to-failure on skeletal muscle hypertrophy: a systematic review with meta-analysis. Sports Med 2023;53(3):649–665",
+        "url": "https://link.springer.com/article/10.1007/s40279-023-01946-6"
+      }
+    ],
+    "body": "**Claim:** Sets should be taken close to failure to grow well, but training *to* momentary\nfailure on every set is unnecessary and adds fatigue. Roughly 0–3 reps in reserve (RIR)\ncaptures most of the benefit.\n\n**Evidence:** A meta-analysis found only a trivial hypertrophy advantage for training to\nfailure vs stopping short, and closer-to-failure training was associated with slightly\n*smaller* strength gains and more fatigue (Refalo 2023).\n\n**Takeaway:** Cue effort, not annihilation: most working sets should end around 1–3 RIR.\nReserve true failure for isolation work or the last set of an exercise. When readiness is\nlow, backing off to ~2–3 RIR is a sensible way to keep stimulus while cutting fatigue —\nconsistent with the app trimming intensity on low-readiness days."
+  },
+  {
+    "id": "training-frequency-2x",
+    "title": "Train each muscle about twice per week",
+    "domain": "hypertrophy",
+    "tags": [
+      "frequency",
+      "volume-distribution",
+      "hypertrophy"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Effects of resistance training frequency on measures of muscle hypertrophy: a systematic review and meta-analysis. Sports Med 2016;46(11):1689–1697",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27102172/"
+      }
+    ],
+    "body": "**Claim:** For a fixed weekly volume, training a muscle ~2×/week produces more hypertrophy\nthan hitting it all in one session. Frequency mostly matters as a tool for *distributing*\nvolume across sessions.\n\n**Evidence:** A meta-analysis found that, when weekly sets are equated, twice-weekly\nfrequency beats once-weekly for growth; whether 3× beats 2× is unresolved (Schoenfeld\n2016).\n\n**Takeaway:** Spread each muscle's weekly sets over at least two sessions rather than one\npunishing session. This keeps per-session volume in a recoverable range and lets each set\nbe higher quality. When the coach builds a split or a workout, it should ensure major\nmuscles recur ~2×/week across the cycle, not that any single day maximizes one muscle."
+  },
+  {
+    "id": "volume-dose-response",
+    "title": "Weekly volume dose–response for hypertrophy",
+    "domain": "hypertrophy",
+    "tags": [
+      "volume",
+      "sets",
+      "dose-response",
+      "hypertrophy"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass. J Sports Sci 2017;35(11):1073–1082",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27433992/"
+      }
+    ],
+    "body": "**Claim:** Muscle growth rises with weekly hard-set volume in a graded, dose-response\nfashion. Roughly 10–20 hard sets per muscle group per week drives near-maximal hypertrophy\nfor most trainees.\n\n**Evidence:** A meta-analysis of 15 studies found a significant, graded effect of weekly\nsets on muscle size — each additional weekly set was associated with a further increase in\ngrowth, with a threshold around ~10 sets for near-maximal gains (Schoenfeld 2017).\n\n**Takeaway:** Aim for ~10–20 direct working sets per muscle per week. This is exactly the\nwindow the app already encodes in `MUSCLE_RANGES` (per-muscle optimal set ranges) — cards\nand code agree. When weekly volume for a muscle sits below its range, adding sets is the\nhighest-yield change; the coach should surface under-trained muscles by name and nudge\nvolume up toward the range."
+  },
+  {
+    "id": "creatine-monohydrate",
+    "title": "Creatine monohydrate: the proven supplement",
+    "domain": "nutrition",
+    "tags": [
+      "creatine",
+      "supplement",
+      "strength",
+      "performance"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Kreider RB, et al. International Society of Sports Nutrition position stand: safety and efficacy of creatine supplementation in exercise, sport, and medicine. J Int Soc Sports Nutr 2017;14:18",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/28615996/"
+      }
+    ],
+    "body": "**Claim:** Creatine monohydrate is the most effective, best-evidenced supplement for\nincreasing high-intensity performance and lean mass over time. It is safe and well-tolerated\nat ~3–5 g/day long term.\n\n**Evidence:** The ISSN position stand concludes creatine monohydrate reliably increases\nhigh-intensity exercise capacity and training-related lean mass, and is safe up to ~30 g/day\nfor years in healthy people (Kreider 2017).\n\n**Takeaway:** A flat ~3–5 g/day (no loading phase needed) is a cheap, high-confidence\nrecommendation for almost anyone training for strength or size; benefits accrue as muscle\ncreatine stores saturate over ~2–4 weeks. Most other supplements have far weaker evidence.\nThe coach can recommend creatine confidently while treating flashier supplements skeptically."
+  },
+  {
+    "id": "cutting-deficit-rate",
+    "title": "Cut at ~0.5–1% bodyweight per week",
+    "domain": "nutrition",
+    "tags": [
+      "cutting",
+      "fat-loss",
+      "deficit",
+      "muscle-retention"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Garthe I, et al. Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes. Int J Sport Nutr Exerc Metab 2011;21(2):97–104",
+        "url": "https://journals.humankinetics.com/view/journals/ijsnem/21/2/article-p97.xml"
+      },
+      {
+        "ref": "Helms ER, Aragon AA, Fitschen PJ. Evidence-based recommendations for natural bodybuilding contest preparation. J Int Soc Sports Nutr 2014;11:20",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/24864135/"
+      }
+    ],
+    "body": "**Claim:** When losing fat while training, a moderate rate of ~0.5–1% of bodyweight per week\nbest preserves (or even builds) lean mass and strength. Faster loss increases muscle and\nperformance loss.\n\n**Evidence:** A slower ~0.7%/week loss increased lean mass and 1RM strength, while a faster\n~1.4%/week loss did not (Garthe 2011); Helms 2014 recommends ~0.5–1%/week for physique\nathletes.\n\n**Takeaway:** For a user cutting (e.g. toward a 72 kg goal), target a ~0.5–1%/week drop —\nfor an 80 kg person that's ~0.4–0.8 kg/week — via a modest deficit, high protein, and\ncontinued heavy training. The coach should flag crash diets: losing faster sacrifices the\nmuscle and strength the training is meant to protect."
+  },
+  {
+    "id": "energy-balance-recomp",
+    "title": "Energy balance drives weight direction",
+    "domain": "nutrition",
+    "tags": [
+      "energy-balance",
+      "calories",
+      "recomposition",
+      "body-composition"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Longland TM, et al. Higher compared with lower dietary protein during an energy deficit combined with intense exercise promotes greater lean mass gain and fat mass loss: a randomized trial. Am J Clin Nutr 2016;103(3):738–746",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/26817506/"
+      },
+      {
+        "ref": "Helms ER, Aragon AA, Fitschen PJ. Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation. J Int Soc Sports Nutr 2014;11:20",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/24864135/"
+      }
+    ],
+    "body": "**Claim:** Whether bodyweight rises or falls is governed by energy balance (calories in vs\nout). Building muscle is easiest in a small surplus and losing fat requires a deficit, but\nbody *recomposition* (gaining muscle while losing fat) is possible — especially for\nbeginners, returnees, and higher-body-fat individuals — with high protein and hard training.\n\n**Evidence:** In an aggressive deficit with high protein and intense training, participants\nstill gained lean mass while losing fat (Longland 2016); Helms 2014 frames calorie level as\nthe primary determinant of weight change.\n\n**Takeaway:** Set calorie level to the primary goal — modest surplus to prioritize size,\ndeficit to prioritize leanness — while keeping protein high to protect or build muscle either\nway. The coach should tie a user's stated goal (e.g. \"cut to 72 kg\") to an appropriate\nenergy-balance direction, not just training changes."
+  },
+  {
+    "id": "lean-bulk-surplus",
+    "title": "Lean bulk on a small surplus",
+    "domain": "nutrition",
+    "tags": [
+      "surplus",
+      "bulking",
+      "muscle-gain",
+      "body-composition"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Iraki J, Fitschen P, Espinar S, Helms E. Nutrition recommendations for bodybuilders in the off-season: a narrative review. Sports 2019;7(7):154",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6680710/"
+      }
+    ],
+    "body": "**Claim:** To build muscle with minimal fat gain, a small energy surplus (~10–20% over\nmaintenance, ~200–500 kcal) is enough. Larger surpluses accelerate fat gain without\nproportionally more muscle, since muscle growth is rate-limited.\n\n**Evidence:** Off-season nutrition recommendations advise a modest surplus targeting\n~0.25–0.5% bodyweight gain per week for novice/intermediate lifters, with advanced lifters\ngaining even more slowly (Iraki 2019).\n\n**Takeaway:** \"Dirty bulking\" mostly adds fat you'll later have to cut. Aim for a slow gain\n(~0.25–0.5%/week), keep protein at target, and let training drive the muscle. The coach\nshould temper expectations: muscle is gained slowly, so a bigger surplus buys fat, not speed."
+  },
+  {
+    "id": "leucine-threshold-per-meal",
+    "title": "Each meal needs enough protein to trigger MPS",
+    "domain": "nutrition",
+    "tags": [
+      "protein",
+      "leucine",
+      "per-meal-dose",
+      "mps"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Jäger R, et al. International Society of Sports Nutrition position stand: protein and exercise. J Int Soc Sports Nutr 2017;14:20",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/28642676/"
+      },
+      {
+        "ref": "Areta JL, et al. J Physiol 2013;591(9):2319–2331",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/23459753/"
+      }
+    ],
+    "body": "**Claim:** A meal needs a minimum \"dose\" of high-quality protein — roughly 0.4 g/kg\nbodyweight, supplying enough leucine — to maximally switch on muscle protein synthesis. Very\nsmall protein snacks under-stimulate MPS.\n\n**Evidence:** MPS follows a dose-response to per-meal protein that saturates around\n~0.4 g/kg for most people; the ISSN position stand notes leucine content and per-serving dose\ndrive the anabolic response (Jäger 2017; Areta 2013).\n\n**Takeaway:** Build each of the day's protein feedings around a proper dose (for a 75 kg\nperson, ~30 g of quality protein) rather than grazing on tiny amounts. Prioritize\nleucine-rich sources (dairy, eggs, meat, whey; or combined plant sources). The coach can use\nthis to explain why \"I eat protein all day\" can still miss the mark if no single meal clears\nthe threshold."
+  },
+  {
+    "id": "peri-workout-nutrition-perspective",
+    "title": "The 'anabolic window' is wide",
+    "domain": "nutrition",
+    "tags": [
+      "nutrient-timing",
+      "peri-workout",
+      "protein",
+      "myths"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Jäger R, et al. International Society of Sports Nutrition position stand: protein and exercise. J Int Soc Sports Nutr 2017;14:20",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/28642676/"
+      },
+      {
+        "ref": "Areta JL, et al. J Physiol 2013;591(9):2319–2331",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/23459753/"
+      }
+    ],
+    "body": "**Claim:** The post-workout \"anabolic window\" is hours wide, not minutes. Getting a protein\nmeal within a few hours around training is sufficient; there is no need to rush a shake\nimmediately after the last set.\n\n**Evidence:** The ISSN position stand concludes total daily protein and overall distribution\nmatter more than precise peri-workout timing (Jäger 2017); MPS stays elevated for many hours,\nand spacing feedings across recovery works well (Areta 2013).\n\n**Takeaway:** Prioritize hitting the daily protein target and reasonable meal spacing over\nstopwatch timing. If someone trains fasted, having a protein meal within a couple of hours\nbefore or after is plenty. The coach should redirect anxiety about immediate post-workout\ntiming toward the things that actually move the needle: total protein and consistency."
+  },
+  {
+    "id": "protein-distribution",
+    "title": "Spread protein across 3–5 meals",
+    "domain": "nutrition",
+    "tags": [
+      "protein",
+      "distribution",
+      "meal-timing",
+      "mps"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Areta JL, et al. Timing and distribution of protein ingestion during prolonged recovery from resistance exercise alters myofibrillar protein synthesis. J Physiol 2013;591(9):2319–2331",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/23459753/"
+      },
+      {
+        "ref": "Jäger R, et al. ISSN position stand: protein and exercise. J Int Soc Sports Nutr 2017;14:20",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/28642676/"
+      }
+    ],
+    "body": "**Claim:** Once daily protein is adequate, distributing it across several moderate doses\n(~3–5 meals of ~0.4 g/kg each) stimulates muscle protein synthesis more evenly than skewing\nit into one or two large meals.\n\n**Evidence:** Moderate protein doses every ~3 hours produced a higher, more sustained MPS\nresponse than the same total given as fewer large or many small feedings (Areta 2013); ISSN\nendorses even distribution (Jäger 2017).\n\n**Takeaway:** Aim for roughly 3–5 protein-containing meals across the day, each with a solid\nprotein dose. This is a secondary optimization — total intake comes first — but it's an easy\nwin. The coach can suggest it to users who hit their protein total in only one or two meals."
+  },
+  {
+    "id": "protein-in-deficit-muscle-retention",
+    "title": "Higher protein + lifting retains muscle in a deficit",
+    "domain": "nutrition",
+    "tags": [
+      "protein",
+      "deficit",
+      "muscle-retention",
+      "cutting"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Longland TM, et al. Higher compared with lower dietary protein during an energy deficit combined with intense exercise promotes greater lean mass gain and fat mass loss. Am J Clin Nutr 2016;103(3):738–746",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/26817506/"
+      },
+      {
+        "ref": "Helms ER, Aragon AA, Fitschen PJ. Evidence-based recommendations for natural bodybuilding contest preparation. J Int Soc Sports Nutr 2014;11:20",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/24864135/"
+      }
+    ],
+    "body": "**Claim:** During a calorie deficit, raising protein (toward the higher end, ~2.0–2.4 g/kg\nbodyweight, or higher relative to lean mass) plus continued resistance training is what\nprotects muscle — and can even add some — while fat is lost.\n\n**Evidence:** A high-protein group (2.4 g/kg) gained lean mass and lost more fat than a\nlower-protein group (1.2 g/kg) in a steep deficit with training (Longland 2016); Helms 2014\nrecommends elevating protein when dieting (up to ~2.3–3.1 g/kg of lean mass).\n\n**Takeaway:** Cutting is the time to push protein *up*, not down, and to keep lifting heavy\nso the body has a reason to keep its muscle. The coach should pair any fat-loss advice with a\nhigher protein target and maintained training intensity, framing them as the muscle-retention\ninsurance that makes a cut succeed."
+  },
+  {
+    "id": "protein-total-intake",
+    "title": "Protein target: ~1.6–2.2 g/kg/day",
+    "domain": "nutrition",
+    "tags": [
+      "protein",
+      "intake",
+      "muscle-growth"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Morton RW, et al. A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains. Br J Sports Med 2018;52(6):376–384",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/28698222/"
+      },
+      {
+        "ref": "Jäger R, et al. International Society of Sports Nutrition position stand: protein and exercise. J Int Soc Sports Nutr 2017;14:20",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/28642676/"
+      }
+    ],
+    "body": "**Claim:** To maximize muscle gain from resistance training, total daily protein intake of\nroughly 1.6–2.2 g per kg of bodyweight is the key target. More than that adds little for\nmuscle; less leaves gains on the table.\n\n**Evidence:** A meta-regression found the benefit of added protein plateaued around\n~1.6 g/kg/day (Morton 2018); the ISSN position stand recommends ~1.4–2.0 g/kg for building\nand maintaining muscle (Jäger 2017).\n\n**Takeaway:** Hitting the daily protein target is the single most important nutrition lever\nfor muscle. For a user at, say, 75 kg, that's ~120–165 g/day. When the coach diagnoses stalled\ngrowth, verifying protein intake is in range should come before tweaking training. Total\ndaily intake matters far more than timing or source."
+  },
+  {
+    "id": "autoregulation-rir",
+    "title": "Autoregulate load by effort (RIR/RPE)",
+    "domain": "programming",
+    "tags": [
+      "autoregulation",
+      "rir",
+      "rpe",
+      "readiness",
+      "load-selection"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Refalo MC, et al. Influence of resistance training proximity-to-failure on skeletal muscle hypertrophy: a systematic review with meta-analysis. Sports Med 2023;53(3):649–665",
+        "url": "https://link.springer.com/article/10.1007/s40279-023-01946-6"
+      },
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      }
+    ],
+    "body": "**Claim:** Fixed loads ignore day-to-day fluctuation in strength and recovery.\nAutoregulation — adjusting load or reps to hit a target effort (reps in reserve / RPE) —\nmatches the stimulus to how the athlete actually shows up that day.\n\n**Evidence:** Because benefit is captured near failure rather than at a fixed %1RM (Refalo\n2023), targeting an RIR band is a defensible way to prescribe effort; ACSM endorses adjusting\nprescription to individual response (ACSM 2009).\n\n**Takeaway:** Prescribe a target RIR (e.g. 2 RIR) and let the exact weight float with daily\nreadiness. On a strong day the user earns more reps or load at that effort; on a depleted\nday they do less — automatically. This dovetails with the app's readiness signal: a\nlow-readiness day is exactly when autoregulation should pull load back (~12%, as the app\nalready does)."
+  },
+  {
+    "id": "deload-planned",
+    "title": "Deloads manage accumulated fatigue",
+    "domain": "programming",
+    "tags": [
+      "deload",
+      "fatigue",
+      "recovery",
+      "programming"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "emerging",
+    "sources": [
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      },
+      {
+        "ref": "Spiering BA, Mujika I, Sharp MA, Foulis SA. Maintaining physical performance: the minimal dose of exercise. J Strength Cond Res 2021;35(5):1449–1458",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/33629972/"
+      }
+    ],
+    "body": "**Claim:** Periodically reducing training stress (a \"deload\" — typically cutting volume\nand/or intensity for ~1 week) lets accumulated fatigue dissipate so performance rebounds,\nwithout meaningfully losing muscle.\n\n**Evidence:** ACSM's framework incorporates planned variation and recovery to sustain\nprogression (ACSM 2009); reduced-dose training preserves strength and muscle over short\nperiods (Spiering 2021), so a brief deload sheds fatigue at little cost.\n\n**Takeaway:** Program a lighter week roughly every 4–8 weeks, or when progress stalls and\nfatigue markers stack up (poor sleep, elevated resting HR, dropping performance). A deload\nusually means ~half the volume and slightly lighter loads, not full rest. The coach can\nrecommend one when the app's readiness trend and stalling e1RMs both point to fatigue rather\nthan under-stimulus."
+  },
+  {
+    "id": "exercise-order-compounds-first",
+    "title": "Order exercises by priority, compounds first",
+    "domain": "programming",
+    "tags": [
+      "exercise-order",
+      "session-structure",
+      "compounds"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      }
+    ],
+    "body": "**Claim:** Performance on an exercise is best when it's done while fresh. Place the\nhighest-priority and most demanding (usually multi-joint/compound) movements early in the\nsession; whatever comes last is done under fatigue and progresses slowest.\n\n**Evidence:** ACSM's position stand recommends sequencing large-muscle, multi-joint\nexercises before smaller-muscle, single-joint ones for strength and power development (ACSM\n2009).\n\n**Takeaway:** Front-load the lifts that matter most for the user's goal — if a lagging\nmuscle is the priority, its key exercise can even go first, fresh, rather than defaulting to\n\"big compound first.\" This is the rule the app's workout creator already applies (\"4–7\nexercises in sensible order, compounds first\"); the coach can justify the ordering and\nadjust it to bring up a lagging muscle."
+  },
+  {
+    "id": "maintenance-detraining",
+    "title": "Muscle is maintained easily; detraining is slow",
+    "domain": "programming",
+    "tags": [
+      "maintenance",
+      "detraining",
+      "layoff",
+      "volume"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Spiering BA, Mujika I, Sharp MA, Foulis SA. Maintaining physical performance: the minimal dose of exercise. J Strength Cond Res 2021;35(5):1449–1458",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/33629972/"
+      }
+    ],
+    "body": "**Claim:** Maintaining strength and muscle takes far less work than building it, and short\nlayoffs cause little loss. Reduced-frequency, reduced-volume training preserves gains for\nweeks; a missed session or two is not a setback.\n\n**Evidence:** Strength and muscle can be maintained with as little as ~1 session/week or a\nthird of the usual volume, provided intensity stays reasonably high, over multi-week periods\n(Spiering 2021).\n\n**Takeaway:** Travel, illness, or a busy stretch won't erase progress — reassure users and\nprescribe a minimal maintenance dose (1×/week per muscle, a few heavy sets) rather than\nworrying about \"losing everything.\" Noticeable detraining takes weeks of near-total\ninactivity. The coach should treat a short adherence gap as recoverable, not cause for\npanic or a program overhaul."
+  },
+  {
+    "id": "minimum-effective-dose",
+    "title": "A little training goes a long way",
+    "domain": "programming",
+    "tags": [
+      "minimum-dose",
+      "adherence",
+      "volume",
+      "consistency"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Spiering BA, Mujika I, Sharp MA, Foulis SA. Maintaining physical performance: the minimal dose of exercise. J Strength Cond Res 2021;35(5):1449–1458",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/33629972/"
+      },
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass. J Sports Sci 2017;35(11):1073–1082",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27433992/"
+      }
+    ],
+    "body": "**Claim:** Meaningful strength and muscle can be built (and easily maintained) with\nsurprisingly little volume when effort is high. The first few hard sets per muscle per week\ndeliver most of the benefit; more adds diminishing returns.\n\n**Evidence:** The dose-response curve is steepest at low volumes (Schoenfeld 2017), and\nperformance can be *maintained* on a fraction of normal training (Spiering 2021).\n\n**Takeaway:** When time is short, don't skip — do a reduced session. A couple of hard sets\nper muscle beats zero, and keeps momentum. This reframes busy weeks: the coach should offer a\ntrimmed but effective workout rather than an all-or-nothing plan, protecting adherence, which\nis the true driver of long-term results."
+  },
+  {
+    "id": "periodization-benefit",
+    "title": "Periodization modestly improves strength gains",
+    "domain": "programming",
+    "tags": [
+      "periodization",
+      "programming",
+      "strength",
+      "progression"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Williams TD, Tolusso DV, Fedewa MV, Esco MR. Comparison of periodized and non-periodized resistance training on maximal strength: a meta-analysis. Sports Med 2017;47(10):2083–2100",
+        "url": "https://link.springer.com/article/10.1007/s40279-017-0734-y"
+      }
+    ],
+    "body": "**Claim:** Planned variation of training variables over time (periodization) produces\nsomewhat larger maximal-strength gains than doing the same thing every session, though the\neffect is modest.\n\n**Evidence:** A meta-analysis of 18 studies found periodized programs outperformed\nnon-periodized ones for 1RM strength, with a small-to-moderate effect that shrank but\nremained significant after adjustment (Williams 2017).\n\n**Takeaway:** Structure beats randomness, but don't over-engineer it. A simple, coherent\nplan that progresses and periodically varies intensity/volume is enough for most trainees;\nelaborate periodization is not required for good results. The app's cycle + progressive\ntargets already provide lightweight structure — the coach should reinforce consistency and\nprogression over frequent program-hopping."
+  },
+  {
+    "id": "rest-intervals",
+    "title": "Rest 2–3 minutes on compound lifts",
+    "domain": "programming",
+    "tags": [
+      "rest-intervals",
+      "recovery",
+      "session-structure"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, et al. Longer interset rest periods enhance muscle strength and hypertrophy in resistance-trained men. J Strength Cond Res 2016;30(7):1805–1812",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/26605807/"
+      },
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      }
+    ],
+    "body": "**Claim:** Resting ~2–3 minutes between hard sets of compound lifts produces greater\nstrength and hypertrophy than short (~1 min) rests, because it preserves the load and reps\nyou can do on the next set.\n\n**Evidence:** In trained men, 3-minute rests beat 1-minute rests for both strength and\nmuscle thickness over 8 weeks (Schoenfeld 2016); ACSM recommends longer rests for\nheavy/compound work (ACSM 2009).\n\n**Takeaway:** Don't rush compounds — 2–3 min (longer for very heavy sets). Short rests\n(60–90 s) are fine for isolation/machine work where recovering full performance matters less\nand time efficiency helps. The app already stores a per-exercise rest target and the creator\nsets `restSeconds`; the coach should default compounds to the longer end."
+  },
+  {
+    "id": "specificity-said",
+    "title": "Specificity (SAID): you adapt to what you train",
+    "domain": "programming",
+    "tags": [
+      "specificity",
+      "said",
+      "goal-setting",
+      "exercise-selection"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      },
+      {
+        "ref": "Schoenfeld BJ, Grgic J, Ogborn D, Krieger JW. Strength and hypertrophy adaptations between low- vs. high-load resistance training. J Strength Cond Res 2017;31(12):3508–3523",
+        "url": "https://journals.lww.com/nsca-jscr/fulltext/2017/12000/strength_and_hypertrophy_adaptations_between_low_.31.aspx"
+      }
+    ],
+    "body": "**Claim:** Adaptations are specific to the demand imposed (Specific Adaptation to Imposed\nDemand). Training a movement, muscle, load range, or rep range improves that quality most.\n\n**Evidence:** Strength gains are largest at the trained load and in the trained movement,\nwhile hypertrophy responds across loads (Schoenfeld 2017); ACSM's framework builds\nprescription around matching variables to the goal (ACSM 2009).\n\n**Takeaway:** Programming choices must follow the goal. Want a bigger bench? The bench (and\nclose variations) must be trained. Want balanced physique development? Every muscle needs\ndirect volume, because indirect work under-stimulates lagging muscles. This underpins the\napp's per-muscle volume tracking: a muscle only progresses if it receives specific,\nsufficient stimulus, and the coach should reason in those terms."
+  },
+  {
+    "id": "split-design-frequency",
+    "title": "Split design serves frequency and volume, not magic",
+    "domain": "programming",
+    "tags": [
+      "split",
+      "ppl",
+      "upper-lower",
+      "full-body",
+      "frequency"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Effects of resistance training frequency on measures of muscle hypertrophy. Sports Med 2016;46(11):1689–1697",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27102172/"
+      }
+    ],
+    "body": "**Claim:** No split (full-body, upper/lower, push-pull-legs, bro-split) is inherently\nsuperior. A split is just a way to distribute weekly volume so each muscle is trained ~2×\nand each session is a recoverable size.\n\n**Evidence:** With weekly volume equated, growth is similar across splits; the frequency\nmeta-analysis shows the important variable is that each muscle is hit ~2×/week, which most\nsensible splits accomplish (Schoenfeld 2016).\n\n**Takeaway:** Choose the split by training days available and recovery, not by belief in a\n\"best\" split. 3 days → full-body or upper/lower/full; 4 → upper/lower; 5–6 → PPL or\nupper/lower variants. The right split is the one that lets the user hit each muscle's weekly\nrange ~2× and actually adhere. The app's cycle is the container for whichever split fits."
+  },
+  {
+    "id": "undulating-vs-linear",
+    "title": "Undulating vs linear periodization",
+    "domain": "programming",
+    "tags": [
+      "periodization",
+      "undulating",
+      "linear",
+      "programming"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Williams TD, Tolusso DV, Fedewa MV, Esco MR. Comparison of periodized and non-periodized resistance training on maximal strength: a meta-analysis. Sports Med 2017;47(10):2083–2100",
+        "url": "https://link.springer.com/article/10.1007/s40279-017-0734-y"
+      }
+    ],
+    "body": "**Claim:** Both linear periodization (gradually rising intensity / falling reps over weeks)\nand daily/weekly undulating periodization (varying intensity and reps more frequently) work.\nNeither is clearly superior for most trainees.\n\n**Evidence:** Meta-analysis confirms periodized > non-periodized for strength, but does not\nestablish a decisive winner between undulating and linear models; effects are small and\noverlap (Williams 2017).\n\n**Takeaway:** Pick the model that fits the schedule and preference, then run it\nconsistently. Undulating variation (e.g. a heavier lower-rep day and a lighter higher-rep\nday for the same muscle within a week) pairs naturally with a rotating cycle. The coach\nshould not push a specific periodization brand — adherence and progression matter more than\nthe model label."
+  },
+  {
+    "id": "warmup-strategy",
+    "title": "Warm up with ramp-up sets, not just the target",
+    "domain": "programming",
+    "tags": [
+      "warmup",
+      "session-structure",
+      "ramp-up",
+      "injury-prevention"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc 2009;41(3):687–708",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/"
+      }
+    ],
+    "body": "**Claim:** A brief, specific warm-up — light general movement plus a few ascending \"ramp-up\"\nsets of the first exercise — primes performance and reduces injury risk, without adding\nmeaningful fatigue. Warm-up sets are not counted as working volume.\n\n**Evidence:** ACSM's guidance includes appropriate warm-up as part of safe, effective\nresistance-training prescription (ACSM 2009); ramp-up sets rehearse the movement and prepare\ntissues at the working load.\n\n**Takeaway:** Before a heavy compound, do 2–4 progressively heavier sets up to the working\nweight; isolation and lighter machine work usually need only 1 light set or none. This is\nwhy the app logs warm-up sets separately and excludes them from volume and e1RM stats — they\nprepare you for the working sets that actually count."
+  },
+  {
+    "id": "weekly-volume-landmarks",
+    "title": "Per-muscle weekly volume landmarks",
+    "domain": "programming",
+    "tags": [
+      "volume",
+      "landmarks",
+      "mev",
+      "mrv",
+      "programming"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass. J Sports Sci 2017;35(11):1073–1082",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27433992/"
+      },
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Effects of resistance training frequency on measures of muscle hypertrophy. Sports Med 2016;46(11):1689–1697",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27102172/"
+      }
+    ],
+    "body": "**Claim:** Each muscle has a rough weekly-set range that is productive: below it you\nunder-stimulate, inside it you get most of the growth, and above it you accumulate fatigue\nfaster than benefit. These landmarks differ by muscle.\n\n**Evidence:** The dose-response and frequency meta-analyses (Schoenfeld 2016, 2017) support\nper-muscle set ranges distributed across ~2 sessions/week; popularized as MEV/MAV/MRV\n(\"minimum effective\", \"maximum adaptive\", \"maximum recoverable\" volume) landmarks.\n\n**Takeaway:** Program to each muscle's range rather than a single global number — bigger\nmuscles and those getting heavy indirect work (e.g. front delts from pressing) need fewer\n*direct* sets. This is exactly what the app encodes in `MUSCLE_RANGES`, with per-muscle\n`[lo, hi]` pairs; the coach should treat those bounds as the target and reason per muscle."
+  },
+  {
+    "id": "doms-not-recovery-marker",
+    "title": "Soreness is a poor recovery gauge",
+    "domain": "recovery",
+    "tags": [
+      "doms",
+      "soreness",
+      "recovery",
+      "readiness"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Damas F, et al. Resistance training-induced changes in integrated myofibrillar protein synthesis are related to hypertrophy only after attenuation of muscle damage. J Physiol 2016;594(18):5209–5222",
+        "url": "https://physoc.onlinelibrary.wiley.com/doi/abs/10.1113/JP272472"
+      }
+    ],
+    "body": "**Claim:** Delayed-onset muscle soreness (DOMS) is a weak, unreliable indicator of recovery\nor of whether a muscle is ready to train. You can be sore yet recovered, or recovered yet\nstill growing without soreness.\n\n**Evidence:** Soreness tracks unaccustomed stimulus and muscle damage, which is dissociated\nfrom the hypertrophic adaptation itself (Damas 2016); it fades as a muscle adapts to a\ngiven exercise regardless of ongoing progress.\n\n**Takeaway:** Don't use soreness to decide whether to train. Better readiness signals are\nperformance (can you hit your numbers?), sleep, energy, and resting-HR trend — the inputs the\napp's readiness record actually uses. The coach should redirect users who gauge recovery by\nsoreness toward these more meaningful markers."
+  },
+  {
+    "id": "elevated-resting-hr-signal",
+    "title": "Elevated resting heart rate flags under-recovery",
+    "domain": "recovery",
+    "tags": [
+      "resting-hr",
+      "readiness",
+      "overreaching",
+      "monitoring"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "emerging",
+    "sources": [
+      {
+        "ref": "Manresa-Rocamora A, et al. Heart rate variability-guided training ... Int J Environ Res Public Health 2021;18(19):10237",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8507742/"
+      }
+    ],
+    "body": "**Claim:** A resting heart rate meaningfully above one's 7-day baseline (roughly ≥5 bpm) can\nindicate accumulated fatigue, poor sleep, illness, or life stress — a reason to ease off\nthat day.\n\n**Evidence:** Resting HR and HRV are complementary autonomic markers; deviations from\nindividual baseline are used in the monitoring literature to flag under-recovery\n(Manresa-Rocamora 2021 and the broader autonomic-monitoring evidence).\n\n**Takeaway:** Judge resting HR against the person's own rolling baseline, not a population\nnumber. The app already encodes this: `rhrElevated` flags a resting HR ≥5 bpm over the\n7-day average, and that flag feeds the low-readiness assessment. The coach should read an\nelevated-RHR day as a cue to reduce intensity or check for illness — especially if sleep is\nalso poor."
+  },
+  {
+    "id": "hrv-recovery-marker",
+    "title": "HRV as a recovery and readiness marker",
+    "domain": "recovery",
+    "tags": [
+      "hrv",
+      "readiness",
+      "autonomic",
+      "monitoring"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Manresa-Rocamora A, et al. Heart rate variability-guided training for enhancing cardiac-vagal modulation, aerobic fitness, and endurance performance: a systematic review with meta-analysis. Int J Environ Res Public Health 2021;18(19):10237",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8507742/"
+      }
+    ],
+    "body": "**Claim:** Overnight heart-rate variability (HRV) reflects autonomic recovery state and can\nhelp guide training load. Higher-than-usual HRV suggests readiness; a suppressed reading\nsuggests accumulated stress or under-recovery — but only relative to the individual's own\nbaseline and trend.\n\n**Evidence:** HRV-guided training can match or modestly outperform fixed plans by steering\nhard sessions toward recovered days, though effects are moderate and methodology-dependent\n(Manresa-Rocamora 2021).\n\n**Takeaway:** Use HRV as a *trend* against personal baseline, never as a single-day verdict —\nit's noisy and affected by alcohol, illness, and measurement conditions. This is why the\napp's readiness record combines the watch's HRV/readiness score with sleep and a manual\nenergy check-in rather than relying on HRV alone. The coach should weigh the whole readiness\npicture."
+  },
+  {
+    "id": "life-stress-recovery",
+    "title": "Life stress competes with training recovery",
+    "domain": "recovery",
+    "tags": [
+      "stress",
+      "recovery",
+      "readiness",
+      "lifestyle"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "emerging",
+    "sources": [
+      {
+        "ref": "Craven J, et al. Effects of acute sleep loss on physical performance: a systematic and meta-analytical review. Sports Med 2022;52(11):2669–2690",
+        "url": "https://link.springer.com/article/10.1007/s40279-022-01706-y"
+      }
+    ],
+    "body": "**Claim:** Psychological and lifestyle stress (work pressure, poor sleep, under-eating) draw\non the same recovery capacity as training. High life stress slows recovery and adaptation,\nso training tolerance drops during stressful periods.\n\n**Evidence:** Sleep loss — a common consequence and correlate of stress — directly impairs\nperformance and increases perceived effort (Craven 2022); stress and recovery share\nphysiological pathways in the broader monitoring literature.\n\n**Takeaway:** When life is chaotic, expect lower training capacity and program more\nconservatively — hold volume steady or reduce it rather than pushing PRs. The app's manual\nenergy check-in and note field capture this subjective load; the coach should factor a run of\nlow-energy/high-stress days into recommendations, not just the objective watch metrics."
+  },
+  {
+    "id": "readiness-autoregulation",
+    "title": "Adjust today's session to today's readiness",
+    "domain": "recovery",
+    "tags": [
+      "readiness",
+      "autoregulation",
+      "intensity",
+      "deload"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Craven J, et al. Effects of acute sleep loss on physical performance. Sports Med 2022;52(11):2669–2690",
+        "url": "https://link.springer.com/article/10.1007/s40279-022-01706-y"
+      },
+      {
+        "ref": "Manresa-Rocamora A, et al. Heart rate variability-guided training ... Int J Environ Res Public Health 2021;18(19):10237",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8507742/"
+      }
+    ],
+    "body": "**Claim:** Recovery fluctuates day to day, so a fixed plan will sometimes ask for more than\nthe body can give. Trimming intensity/volume on a clearly under-recovered day preserves the\ntraining stimulus while avoiding digging a deeper fatigue hole.\n\n**Evidence:** Sleep loss lowers performance capacity for that day (Craven 2022), and\nreadiness-guided approaches steer hard work toward recovered days for better outcomes\n(Manresa-Rocamora 2021).\n\n**Takeaway:** On a low-readiness day (poor sleep, low energy, or elevated resting HR),\nreduce load ~10–15% or shift the hard session — don't force it. The app operationalizes this\nwith a single low-readiness rule (`isLowReadiness`) that trims intensity ~12%; the coach's\nday-to-day advice should agree with that assessment rather than override it."
+  },
+  {
+    "id": "recovery-time-between-sessions",
+    "title": "Muscles need ~24–72 h between hard sessions",
+    "domain": "recovery",
+    "tags": [
+      "recovery",
+      "frequency",
+      "scheduling",
+      "mps"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Effects of resistance training frequency on measures of muscle hypertrophy. Sports Med 2016;46(11):1689–1697",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27102172/"
+      },
+      {
+        "ref": "Damas F, et al. J Physiol 2016;594(18):5209–5222",
+        "url": "https://physoc.onlinelibrary.wiley.com/doi/abs/10.1113/JP272472"
+      }
+    ],
+    "body": "**Claim:** After a hard session a muscle needs roughly 24–72 hours to recover and complete\nits adaptive response before being trained hard again. This recovery window is what sets a\npractical ceiling on useful frequency.\n\n**Evidence:** Elevated muscle protein synthesis persists for ~1–2 days post-training (Damas\n2016), and ~2×/week frequency (i.e. ~48–72 h spacing) supports growth well (Schoenfeld\n2016).\n\n**Takeaway:** Don't train the same muscle hard on back-to-back days; leave ~48 h between\nsessions for a given muscle. This is why sensible splits alternate muscle emphasis across\ndays. When scheduling the cycle, the coach should avoid stacking, say, two heavy pressing\ndays in a row and instead interleave push/pull/legs so each muscle gets its recovery window."
+  },
+  {
+    "id": "sleep-and-performance",
+    "title": "Sleep loss degrades training performance",
+    "domain": "recovery",
+    "tags": [
+      "sleep",
+      "readiness",
+      "performance",
+      "fatigue"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "strong",
+    "sources": [
+      {
+        "ref": "Craven J, et al. Effects of acute sleep loss on physical performance: a systematic and meta-analytical review. Sports Med 2022;52(11):2669–2690",
+        "url": "https://link.springer.com/article/10.1007/s40279-022-01706-y"
+      }
+    ],
+    "body": "**Claim:** Short or poor sleep measurably impairs physical performance — including strength,\npower, and high-intensity work — and raises perceived effort, so a hard session on little\nsleep is both harder and less productive.\n\n**Evidence:** A meta-analytical review found acute sleep loss reduces physical performance\nacross multiple domains, with next-day and afternoon sessions particularly affected (Craven\n2022).\n\n**Takeaway:** Treat a bad night as a real signal, not an excuse to ignore. On low-sleep\ndays, expect lower output and either reduce intensity/volume or swap to easier work — which\nis exactly what the app's low-readiness rule does (it trims intensity ~12% when sleep is\npoor). The coach should connect a poor-sleep readiness record to a lighter recommendation\nfor that day."
+  },
+  {
+    "id": "sleep-extension-benefit",
+    "title": "More sleep improves performance",
+    "domain": "recovery",
+    "tags": [
+      "sleep",
+      "sleep-extension",
+      "performance",
+      "recovery"
+    ],
+    "muscles": [
+      "all"
+    ],
+    "evidence": "moderate",
+    "sources": [
+      {
+        "ref": "Mah CD, Mah KE, Kezirian EJ, Dement WC. The effects of sleep extension on the athletic performance of collegiate basketball players. Sleep 2011;34(7):943–950",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/21731144/"
+      }
+    ],
+    "body": "**Claim:** Extending sleep toward ~8–10 hours improves athletic performance — speed,\naccuracy, reaction time, and mood — in people who were previously under-slept. Sleep is a\nperformance enhancer, not just damage control.\n\n**Evidence:** When collegiate basketball players extended sleep for several weeks, sprint\ntimes, shooting accuracy, reaction time, and mood all improved significantly (Mah 2011).\n\n**Takeaway:** For someone chasing progress, prioritizing sleep is one of the\nhighest-leverage, lowest-cost interventions available — often more impactful than tweaking\nthe program. The coach should treat consistently short sleep (visible in the app's readiness\nhistory) as a first-order thing to address before adding training volume."
+  }
+]
