@@ -1,137 +1,125 @@
-# Build pipeline for the knowledge corpus (RAG groundwork — plumbing only)
+# Wire RAG retrieval into the coach chat (science-grounded answers)
 
 **Standing instructions:** Implement this plan exactly. Do not touch anything outside the
 project directory; if an out-of-project need is discovered mid-run, list it at the end of
-your response instead of doing it. Do not commit. Do NOT edit anything under
-`app/functions/src/knowledge/` — those markdown cards are hand-authored source of truth and
-are already written; your job is only the build pipeline, type, and test around them.
+your response instead of doing it. Do not commit. Do NOT edit the knowledge cards
+(`app/functions/src/knowledge/**`), `knowledge.json`, or `knowledge-embeddings.json` — those
+are generated/authored artifacts already in the repo. Do NOT call any external service or
+run the embedding build; the embedding index already exists and Claude will run any real
+Vertex calls during verification.
 
 ## Context
 
-`app/functions/src/knowledge/<domain>/*.md` contains 41 hand-authored, cited "principle
-cards" (domains: `hypertrophy`, `programming`, `recovery`, `nutrition`) that will later
-ground the AI coach via RAG. This task compiles them into a single bundled JSON the Firebase
-Functions can import at runtime — mirroring the existing `catalog.json` pattern (imported in
-`app/functions/src/context.ts` via `import catalogJson from './catalog.json'`;
-`resolveJsonModule` is already enabled). **No embedding or retrieval here** — just build,
-type, and validate the corpus.
-
-Each card is a markdown file with YAML-style frontmatter then a markdown body:
-
-```markdown
----
-id: volume-dose-response
-title: "Weekly volume dose–response for hypertrophy"
-domain: hypertrophy
-tags: [volume, sets, dose-response, hypertrophy]
-muscles: [all]
-evidence: strong
-sources:
-  - ref: "Schoenfeld BJ, ... J Sports Sci 2017;35(11):1073–1082"
-    url: "https://pubmed.ncbi.nlm.nih.gov/27433992/"
----
-**Claim:** …
-
-**Evidence:** …
-
-**Takeaway:** …
+The knowledge corpus (41 cited cards) is built and exposed via
+`app/functions/src/knowledge.ts` (`KNOWLEDGE`, `KNOWLEDGE_BY_ID`), and a precomputed Vertex
+embedding index sits at `app/functions/src/knowledge-embeddings.json`:
+```json
+{ "model": "gemini-embedding-001", "dim": 768, "taskType": "RETRIEVAL_DOCUMENT",
+  "builtAt": "…", "vectors": { "<cardId>": [ …768 unit-normalized floats… ] } }
 ```
+Every card has exactly one vector; vectors are L2-normalized (so cosine similarity is just a
+dot product). The coach endpoints live in `app/functions/src/index.ts`; the LLM wrapper is
+`app/functions/src/model.ts` (Gemini via Vertex, with `usingMock` for the emulator/tests);
+deterministic mocks are in `app/functions/src/mocks.ts`.
 
-Frontmatter facts you can rely on across ALL cards (do not need to handle other shapes):
-- Keys always appear in this order: `id`, `title`, `domain`, `tags`, `muscles`, `evidence`,
-  `sources`.
-- `id`, `domain`, `evidence` are bare tokens (no quotes). `title` is double-quoted and may
-  contain colons, en dashes, and parentheses.
-- `tags` and `muscles` are single-line bracketed lists: `[a, b, c]` (bare comma-separated
-  tokens; `muscles` is always either `[all]` or muscle ids).
-- `sources` is a block list of one or more items, each exactly two indented lines:
-  `  - ref: "…"` then `    url: "…"`. Both values are double-quoted and may contain colons.
-- Files are UTF-8 and contain non-ASCII characters (–, ×, ≥). Read and write as UTF-8.
+**Goal:** at chat time, retrieve the few most relevant cards for the user's question and
+inject them into the prompt so the coach grounds physiology claims in real, cited science and
+shows the sources. **Scope is coach chat only** — do NOT touch `generateReport`,
+`generateWeeklySummary`, or `createWorkout`.
 
-## Task 1 — `app/scripts/build-knowledge.mjs`
+## Task 1 — `model.ts`: add a query-embedding helper
 
-A Node ESM script (mirror the style of `app/scripts/curate.mjs` — dependency-free, uses only
-`node:fs`/`node:path`). It must:
+Add an exported async `embedText(text, { taskType, model, dim })` that calls
+`genai().models.embedContent({ model, contents: [text], config: { taskType,
+outputDimensionality: dim } })` and returns `res.embeddings?.[0]?.values` (throw on empty).
+This mirrors the existing `generateText`/`generateJson` style and reuses the same `genai()`
+client. Do not add mock handling here — callers handle `usingMock`.
 
-1. Glob `app/functions/src/knowledge/*/*.md` (domain subfolders only, so
-   `knowledge/README.md` is naturally excluded). Resolve paths relative to the script so it
-   works when run from `app/`.
-2. For each file, split off the frontmatter (the block between the first two `---` lines) and
-   the body (everything after). Parse the frontmatter into `{id, title, domain, tags[],
-   muscles[], evidence, sources: [{ref, url}]}` using a small purpose-built parser for the
-   fixed shape above (do NOT add a YAML dependency):
-   - scalars: strip one pair of surrounding double quotes if present.
-   - `tags`/`muscles`: strip the `[` `]`, split on `,`, trim each token.
-   - `sources`: iterate the indented `- ref:`/`url:` line pairs.
-   - `body`: the trimmed markdown after the closing `---`.
-3. Validate every card and **fail loudly** (`console.error` + `process.exit(1)`) on any of:
-   duplicate `id`; missing/empty `id`, `title`, `domain`, `evidence`, or `body`; empty
-   `sources`, or any source missing `ref` or `url`; `domain` not in
-   `['hypertrophy','programming','recovery','nutrition']`; `evidence` not in
-   `['strong','moderate','emerging']`; any `muscles` entry that is not `'all'` and not a key
-   of `MUSCLE_RANGES` (import the keys from `../functions/src/volumeTargets.ts` — or, if
-   importing TS from an .mjs is awkward, hard-code the muscle-key list with a comment saying
-   it must stay in sync with `volumeTargets.ts`).
-4. Sort cards by `domain` then `id` (stable output), and write
-   `app/functions/src/knowledge.json` as UTF-8, pretty-printed (2-space), array of
-   `{id, title, domain, tags, muscles, evidence, sources, body}`.
-5. Print a summary: total card count and a per-domain breakdown (expected: hypertrophy 12,
-   programming 12, recovery 8, nutrition 9 → total 41).
+## Task 2 — new file `app/functions/src/retrieval.ts`
 
-Add an npm script to `app/package.json`: `"build:knowledge": "node scripts/build-knowledge.mjs"`.
+Pure, well-tested retrieval over the bundled index. Exports:
 
-## Task 2 — type + accessor
-
-1. In `app/functions/src/domain.ts`, add exported types beside `CatalogEntry`:
-   ```ts
-   export type KnowledgeDomain = 'hypertrophy' | 'programming' | 'recovery' | 'nutrition'
-   export type EvidenceLevel = 'strong' | 'moderate' | 'emerging'
-   export interface KnowledgeSource { ref: string; url: string }
-   export interface KnowledgeCard {
-     id: string
-     title: string
-     domain: KnowledgeDomain
-     tags: string[]
-     muscles: string[]
-     evidence: EvidenceLevel
-     sources: KnowledgeSource[]
-     body: string
-   }
+1. `import embeddingsJson from './knowledge-embeddings.json'` cast to a typed shape
+   `{ model: string; dim: number; taskType: string; vectors: Record<string, number[]> }`
+   (parallel to how `knowledge.ts` casts `knowledge.json`).
+2. Helpers (all exported for tests, pure/sync):
+   - `normalize(v: number[]): number[]` — L2-normalize (guard zero norm).
+   - `dot(a: number[], b: number[]): number`.
+   - `rankByVector(queryVec: number[], k, minScore): { id, score }[]` — normalize the query,
+     dot against every card vector in `embeddingsJson.vectors`, sort desc, keep score ≥
+     `minScore`, take top `k`. (Card vectors are already normalized.)
+   - `keywordRank(query: string, k): { id, score }[]` — fallback used in mock mode: tokenize
+     the query (lowercase, split on non-word, drop tokens < 3 chars), score each card by count
+     of tokens appearing in its `title + tags + body` (case-insensitive), return top `k` with
+     score > 0.
+3. `async function retrieveCards(query: string, opts?: { k?: number; minScore?: number }):
+   Promise<KnowledgeCard[]>` (defaults `k = 4`, `minScore = 0.5`):
+   - If `usingMock` (import from `./model`): use `keywordRank(query, k)`.
+   - Else: `embedText(query, { taskType: 'RETRIEVAL_QUERY', model: embeddingsJson.model, dim:
+     embeddingsJson.dim })`, then `rankByVector`. Wrap the embed call in try/catch — on ANY
+     error, `console.error(...)` and return `[]` (the coach must still work with zero cards).
+   - Map result ids → `KNOWLEDGE_BY_ID` cards (drop any missing), preserve ranked order.
+4. `formatScienceBlock(cards: KnowledgeCard[]): string` — returns `''` for an empty array,
+   else a prompt section. Number the cards `[S1]`, `[S2]`, … and for each include title,
+   evidence level, body, and the first source's `ref` + `url`. Wrap in clear delimiters, e.g.:
    ```
-2. New file `app/functions/src/knowledge.ts` that imports the built JSON and exposes it typed
-   (parallel to how `context.ts` does `CATALOG`/`CATALOG_BY_ID`):
-   ```ts
-   import knowledgeJson from './knowledge.json'
-   import type { KnowledgeCard } from './domain'
-   export const KNOWLEDGE: KnowledgeCard[] = knowledgeJson as KnowledgeCard[]
-   export const KNOWLEDGE_BY_ID = new Map(KNOWLEDGE.map((c) => [c.id, c]))
+   === SCIENCE REFERENCES (peer-reviewed; cite when you use one) ===
+   [S1] <title> (evidence: <evidence>)
+   <body>
+   Source: <sources[0].ref> — <sources[0].url>
+
+   [S2] …
    ```
-   **Do not** wire this into `context.ts`, the prompts, or any endpoint — retrieval is a
-   later step. Just load and export.
 
-## Task 3 — `app/functions/src/knowledge.test.ts`
+## Task 3 — wire into `coachChat` (`index.ts`)
 
-A vitest test (style like the other `*.test.ts` in `functions/src`) asserting, against the
-imported `KNOWLEDGE` array:
-- non-empty (≥ 40 cards), and every `id` is unique.
-- every card has non-empty `id`, `title`, `body`, and ≥ 1 source, each source having
-  non-empty `ref` and `url` (url starts with `http`).
-- every `domain` ∈ the four allowed values; every `evidence` ∈ the three allowed values.
-- every `muscles` entry is `'all'` or a key of `MUSCLE_RANGES` (import from `./volumeTargets`).
+In `coachChat`, after `loadUserData` and computing the last user message
+(`trimmed[trimmed.length - 1].text`):
+- `const cards = await retrieveCards(lastUserText)`.
+- **Real branch:** build the prompt as today but insert `formatScienceBlock(cards)` between
+  the user-data context and the `=== CONVERSATION ===` transcript (only when non-empty).
+  Extend the chat instruction so the coach uses and cites them, e.g. append to the task line:
+  *"Where a SCIENCE REFERENCE supports a claim, ground your answer in it and cite it inline
+  like (Schoenfeld 2017); if you list sources, use only the provided references — never invent
+  citations or cite a reference you didn't use."* Also add one sentence to the shared `SYSTEM`
+  constant: *"When SCIENCE REFERENCES are provided, prefer them for exercise-science claims and
+  cite them; never fabricate citations."*
+- **Mock branch:** call `mockChat(data, lastUserText, cards)` (extended signature below) so the
+  wiring is exercised deterministically in the emulator/tests.
+
+## Task 4 — `mocks.ts`: make the mock cite retrieved cards
+
+Extend `mockChat(data, lastMessage, cards: KnowledgeCard[] = [])`: keep the existing reply
+logic, and when `cards.length`, append a deterministic footer:
+`\nSources: ` + the retrieved cards' `sources[0].ref` joined by `; `. Import the
+`KnowledgeCard` type from `./domain`. (Existing callers pass no cards → unchanged behavior.)
+
+## Task 5 — `app/functions/src/retrieval.test.ts` (vitest)
+
+Cover, without any network/Vertex call:
+- `normalize` produces a unit vector; `dot` of a normalized vector with itself ≈ 1.
+- `rankByVector`: construct a query vector equal to a known card's stored vector → that card
+  ranks first with score ≈ 1; `minScore` filters low scores; `k` caps the count.
+- `keywordRank`: a query like "how much protein on a cut" returns nutrition card ids
+  (e.g. contains `protein-in-deficit-muscle-retention` or `cutting-deficit-rate`).
+- Index integrity: `embeddingsJson.vectors` has exactly one entry per `KNOWLEDGE` id, every
+  vector length === `embeddingsJson.dim`, and each is unit-normalized (norm ≈ 1 within 1e-3).
+- `formatScienceBlock([])` === '' and a non-empty call includes `[S1]` and a `Source:` line.
 
 ## Constraints
 
-- Create/modify ONLY: `app/scripts/build-knowledge.mjs`, `app/functions/src/knowledge.json`,
-  `app/functions/src/knowledge.ts`, `app/functions/src/knowledge.test.ts`,
-  `app/functions/src/domain.ts` (add types only), `app/package.json` (add one script).
-- Do NOT edit any file under `app/functions/src/knowledge/`. Do NOT add npm dependencies.
-- Do NOT touch anything outside this project directory. Do NOT run `firebase deploy`, do NOT
-  commit. Claude handles deploy/commit.
+- Create/modify ONLY: `app/functions/src/model.ts`, `app/functions/src/retrieval.ts` (new),
+  `app/functions/src/index.ts` (coachChat only), `app/functions/src/mocks.ts`,
+  `app/functions/src/retrieval.test.ts` (new).
+- Do NOT modify other endpoints, the knowledge cards, `knowledge.json`,
+  `knowledge-embeddings.json`, `knowledge.ts`, or `domain.ts`.
+- Do NOT add npm dependencies. Do NOT call Vertex / run the embedding build. Do NOT deploy or
+  commit.
 
-## Verification (run these; all must pass)
+## Verification (all must pass; Claude will additionally run a real-embedding check)
 
-- From `app/`: `node scripts/build-knowledge.mjs` → exits 0, prints total 41 (12/12/8/9),
-  regenerates `functions/src/knowledge.json` as valid JSON.
-- From `app/functions/`: `npm run build` (tsc) passes with the new import/types.
-- From `app/functions/`: `npm test` (vitest) passes, including the new `knowledge.test.ts`.
-- From `app/`: `npm run build` passes; `npm run lint` passes.
+- `cd app/functions && npm run build` (tsc) passes with the new files/imports.
+- `cd app/functions && npm test` passes, including `retrieval.test.ts`.
+- `cd app && npm run build` and `npm run lint` pass.
+- Confirm (grep) that `generateReport`, `generateWeeklySummary`, and `createWorkout` are
+  unchanged.
