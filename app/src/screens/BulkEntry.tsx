@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
-import { parseSetsText } from '../lib/parse'
+import { appendSetToken, parseSetsText } from '../lib/parse'
 import { todayStr } from '../lib/cycle'
 import { uuid } from '../lib/workout'
 import { setVolume } from '../lib/volume'
@@ -81,12 +81,7 @@ export function BulkEntry() {
   const canSave = rows.some((r) => r.text.trim() && !rowError(r.text))
 
   const handleAppend = (i: number, token: string) => {
-    setRows(rows.map((r, j) => {
-      if (j !== i) return r
-      const text = r.text
-      const append = text.length > 0 && !text.endsWith(' ') && !text.endsWith(',') ? `, ${token}` : token
-      return { ...r, text: text + append }
-    }))
+    setRows(rows.map((r, j) => (j === i ? { ...r, text: appendSetToken(r.text, token) } : r)))
   }
 
   return (

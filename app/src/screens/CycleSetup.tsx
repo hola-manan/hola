@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { repo } from '../lib/repo'
-import { todayStr } from '../lib/cycle'
+import { removeCycleDay, todayStr } from '../lib/cycle'
 import { useStore, useUid } from '../store'
 import { isRestDay } from '../types'
 
@@ -108,7 +108,14 @@ export function CycleSetup() {
                     )}
                   </div>
 
-                  <button onClick={() => setDays(days.filter((_, j) => j !== i))} style={{ color: '#5a6270', fontSize: 12, background: 'none', border: 'none', padding: '0 4px', cursor: 'pointer' }}>✕</button>
+                  <button
+                    onClick={() => {
+                      const next = removeCycleDay(days, pointer, i)
+                      setDays(next.days)
+                      setPointer(next.pointer)
+                    }}
+                    style={{ color: '#5a6270', fontSize: 12, background: 'none', border: 'none', padding: '0 4px', cursor: 'pointer' }}
+                  >✕</button>
 
                   {isToday && (
                     <span style={{ fontFamily: MONO, fontSize: 9.5, color: '#0b0d10', background: '#c8f04b', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>TODAY</span>

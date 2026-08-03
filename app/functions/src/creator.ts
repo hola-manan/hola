@@ -48,7 +48,13 @@ const isCompoundish = (e: CatalogEntry) =>
  * Validate and repair a draft coming from the model. Throws when nothing
  * usable survives. Returns a cleaned draft.
  */
-export function validateDraft(raw: unknown, history: Workout[]): WorkoutDraft {
+export function validateDraft(
+  raw: unknown,
+  history: Workout[],
+  /** Defaults to the shared catalog; callers that offered the model a user's
+   *  custom exercises must pass the matching catalog or those get dropped. */
+  catalog: Map<string, CatalogEntry> = CATALOG_BY_ID,
+): WorkoutDraft {
   if (typeof raw !== 'object' || raw === null) throw new Error('draft is not an object')
   const d = raw as Record<string, unknown>
   const rms = e1rmTable(history)
@@ -58,7 +64,7 @@ export function validateDraft(raw: unknown, history: Workout[]): WorkoutDraft {
     if (typeof item !== 'object' || item === null) continue
     const e = item as Record<string, unknown>
     const id = String(e.exerciseId ?? '')
-    if (!CATALOG_BY_ID.has(id)) continue // unknown exercise: drop
+    if (!catalog.has(id)) continue // unknown exercise: drop
     const setsIn = Array.isArray(e.sets) ? e.sets : []
     const sets: DraftSet[] = []
     for (const s of setsIn) {

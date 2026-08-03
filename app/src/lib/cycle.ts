@@ -23,6 +23,23 @@ export function currentDayLabel(cycle: Cycle): string {
  * (Home derives ✓/missed from the logged workouts) — finishing a workout never
  * moves the pointer.
  */
+/**
+ * Drop day `index` from a rotation, keeping "today" on the same day label.
+ * Removing a day *before* the pointer shifts every later day up by one, so the
+ * pointer has to move with it or today silently becomes a different day.
+ * Removing the pointer's own day leaves it on whatever slides into the slot.
+ */
+export function removeCycleDay(
+  days: string[],
+  pointer: number,
+  index: number,
+): { days: string[]; pointer: number } {
+  const next = days.filter((_, j) => j !== index)
+  if (!next.length) return { days: next, pointer: 0 }
+  const shifted = index < pointer ? pointer - 1 : pointer
+  return { days: next, pointer: Math.min(Math.max(shifted, 0), next.length - 1) }
+}
+
 export function autoAdvanceDaily(cycle: Cycle, today = todayStr()): Cycle {
   const elapsed = daysBetween(cycle.pointerDate, today)
   if (elapsed <= 0) return cycle

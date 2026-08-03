@@ -30,7 +30,8 @@ export interface UserData {
   customExercises: CatalogEntry[]
 }
 
-const buildUserCatalog = (custom: CatalogEntry[]) => {
+/** The shared catalog plus this user's custom exercises, by id. */
+export const buildUserCatalog = (custom: CatalogEntry[]) => {
   const map = new Map<string, CatalogEntry>(CATALOG_BY_ID)
   for (const c of custom) map.set(c.id, c)
   return map
@@ -56,8 +57,7 @@ export function summarizeHistory(workouts: Workout[], catalog: Map<string, Catal
   if (older.length) {
     const byWeek = new Map<string, Workout[]>()
     for (const w of older) {
-      const d = new Date(w.startedAt)
-      const week = `${d.getFullYear()}-W${String(getISOWeek(d)).padStart(2, '0')}`
+      const week = isoWeekId(new Date(w.startedAt))
       byWeek.set(week, [...(byWeek.get(week) ?? []), w])
     }
     out += `\n\nOLDER HISTORY (working sets per muscle group, per week):\n`
@@ -73,12 +73,35 @@ export function summarizeHistory(workouts: Workout[], catalog: Map<string, Catal
   return out
 }
 
-export function getISOWeek(date: Date): number {
+/** The Thursday of the ISO week containing `date` — the day that decides both
+ *  the week number and the week-numbering year. */
+function isoThursday(date: Date): Date {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
   const day = d.getUTCDay() || 7
   d.setUTCDate(d.getUTCDate() + 4 - day)
+  return d
+}
+
+export function getISOWeek(date: Date): number {
+  const d = isoThursday(date)
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7)
+}
+
+/** ISO-8601 week-numbering year. Diverges from the calendar year around New
+ *  Year: 31 Dec 2025 belongs to week-year 2026, 1 Jan 2027 to week-year 2026. */
+export function getISOWeekYear(date: Date): number {
+  return isoThursday(date).getUTCFullYear()
+}
+
+/**
+ * Stable `2026-W01` key for a training week. The week number must be paired with
+ * the ISO week-numbering *year*, not the calendar year — pairing it with
+ * `getFullYear()` splits one Monday-based week across two ids at New Year and
+ * collides with the same-numbered week of the true ISO year.
+ */
+export function isoWeekId(date: Date): string {
+  return `${getISOWeekYear(date)}-W${String(getISOWeek(date)).padStart(2, '0')}`
 }
 
 export function describeProfile(profile: Profile | null): string {
