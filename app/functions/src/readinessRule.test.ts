@@ -101,6 +101,15 @@ describe('formatSleepDuration', () => {
     expect(formatSleepDuration(480)).toBe('8h00m')
     expect(formatSleepDuration(65)).toBe('1h05m')
   })
+
+  // describeReadiness feeds this a mean of the past week's sleepMinutes, so the
+  // input is routinely fractional — the minutes must never round up to 60.
+  it('never renders 60 minutes for fractional averages', () => {
+    expect(formatSleepDuration(419.7)).toBe('7h00m')
+    expect(formatSleepDuration(359.6)).toBe('6h00m')
+    expect(formatSleepDuration(427.5)).toBe('7h08m')
+    expect(formatSleepDuration(300.9)).toBe('5h01m')
+  })
 })
 
 it('LOW_READINESS_SCALE trims ~12%', () => {

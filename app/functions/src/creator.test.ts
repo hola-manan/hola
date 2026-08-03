@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { generateDraft, musclesForDay, validateDraft } from './creator'
-import { buildContext, CATALOG_BY_ID, summarizeHistory } from './context'
+import { buildContext, buildUserCatalog, CATALOG_BY_ID, isoWeekId, summarizeHistory } from './context'
 import type { UserData } from './context'
 import type { Workout } from './domain'
 
@@ -135,6 +135,69 @@ describe('validateDraft', () => {
         history,
       ),
     ).toThrow()
+  })
+
+  // createWorkout advertises the user's custom exercises in the prompt catalog,
+  // so validation has to recognise them coming back.
+  it('keeps custom exercises when the caller supplies the user catalog', () => {
+    const custom = {
+      id: 'custom-sled-push',
+      name: 'Sled Push',
+      primaryMuscles: ['quads'],
+      secondaryMuscles: ['glutes'],
+      equipment: 'other',
+    }
+    const catalog = buildUserCatalog([custom])
+    const draft = validateDraft(
+      {
+        name: 'Legs',
+        exercises: [
+          { exerciseId: 'custom-sled-push', rationale: 'conditioning finisher', restSeconds: 90, sets: [{ weightKg: 60, reps: 20 }] },
+        ],
+      },
+      history,
+      catalog,
+    )
+    expect(draft.exercises.map((e) => e.exerciseId)).toEqual(['custom-sled-push'])
+  })
+
+  it('still drops genuinely unknown ids when a user catalog is supplied', () => {
+    const catalog = buildUserCatalog([])
+    expect(() =>
+      validateDraft(
+        { exercises: [{ exerciseId: 'made-up-lift', sets: [{ weightKg: 10, reps: 5 }] }] },
+        history,
+        catalog,
+      ),
+    ).toThrow()
+  })
+})
+
+describe('isoWeekId', () => {
+  // The week id keys users/{uid}/summaries/{week}. Pairing an ISO week number
+  // with the *calendar* year splits one Mon-based week across two docs and
+  // collides with the same-numbered week of the real ISO year.
+  it('uses the ISO week-numbering year, not the calendar year', () => {
+    // Mon 29 Dec 2025 – Sun 4 Jan 2026 is a single ISO week: 2026-W01.
+    expect(isoWeekId(new Date('2025-12-29T12:00:00'))).toBe('2026-W01')
+    expect(isoWeekId(new Date('2025-12-31T12:00:00'))).toBe('2026-W01')
+    expect(isoWeekId(new Date('2026-01-01T12:00:00'))).toBe('2026-W01')
+    expect(isoWeekId(new Date('2026-01-04T12:00:00'))).toBe('2026-W01')
+  })
+
+  it('gives one id per Monday-based week across a year boundary', () => {
+    // Mon 28 Dec 2026 – Sun 3 Jan 2027 is ISO week 2026-W53 throughout.
+    const week = ['2026-12-28', '2026-12-31', '2027-01-01', '2027-01-03'].map((d) =>
+      isoWeekId(new Date(`${d}T12:00:00`)),
+    )
+    expect(new Set(week).size).toBe(1)
+    expect(week[0]).toBe('2026-W53')
+    // and the next week rolls over cleanly
+    expect(isoWeekId(new Date('2027-01-04T12:00:00'))).toBe('2027-W01')
+  })
+
+  it('is stable mid-year', () => {
+    expect(isoWeekId(new Date('2026-07-16T12:00:00'))).toBe('2026-W29')
   })
 })
 

@@ -43,6 +43,23 @@ export function parseSetsText(text: string): WorkoutSet[] {
   return sets
 }
 
+/**
+ * Append a bulk-entry token to the text of one exercise row.
+ *
+ * `+` joins a segment onto the set already being written, so it must NOT be
+ * comma-separated — a comma starts a new set, which would record a drop as its
+ * own working set. Every other token ("w", …) does start a new set.
+ */
+export function appendSetToken(text: string, token: string): string {
+  if (token === '+') {
+    const base = text.trimEnd()
+    // a segment needs a set to hang off, and never doubles up
+    return base && !base.endsWith('+') ? `${base}+` : base
+  }
+  const needsSeparator = text.length > 0 && !text.endsWith(' ') && !text.endsWith(',')
+  return text + (needsSeparator ? `, ${token}` : token)
+}
+
 export class ParseError extends Error {
   readonly fragment: string
   constructor(fragment: string) {

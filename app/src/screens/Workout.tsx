@@ -394,6 +394,8 @@ function ExerciseGrid({
   const [warmup, setWarmup] = useState(false)
   const [rpe, setRpe] = useState<string>('')
   const [showRpe, setShowRpe] = useState(false)
+  /** Pending note, attached to the next logged set. */
+  const [note, setNote] = useState('')
 
   const resetEditor = (nextDone: number) => {
     const t = we.targetSets?.[nextDone]
@@ -405,6 +407,7 @@ function ExerciseGrid({
     setWarmup(false)
     setRpe('')
     setShowRpe(false)
+    setNote('')
   }
 
   const liveSegment = (): Segment | null => {
@@ -430,6 +433,7 @@ function ExerciseGrid({
       segments,
       type: warmup ? 'warmup' : 'working',
       ...(rpe && parseFloat(rpe) ? { rpe: parseFloat(rpe) } : {}),
+      ...(note ? { note } : {}),
       completedAt: Date.now(),
     }
     onChange({ ...we, sets: [...we.sets, set] })
@@ -442,8 +446,8 @@ function ExerciseGrid({
   }
 
   const addNote = () => {
-    const note = prompt('Note for this set (saved with the next logged set)')
-    if (note) alert('Noted — it will be attached when you log the set.') // simple v1
+    const entered = prompt('Note for this set (saved with the next logged set)', note)
+    if (entered !== null) setNote(entered.trim())
   }
 
   const upcoming = (we.targetSets ?? []).slice(done + 1)
@@ -510,10 +514,11 @@ function ExerciseGrid({
               <span />
             </div>
           ))}
-          {(s.type !== 'working' || s.rpe != null) && (
+          {(s.type !== 'working' || s.rpe != null || s.note) && (
             <div style={{ paddingLeft: 44, marginTop: 3, fontFamily: MONO, fontSize: 10, color: '#3d434c', textTransform: 'uppercase' }}>
               {s.type !== 'working' ? s.type : ''}
               {s.rpe != null ? ` rpe ${s.rpe}` : ''}
+              {s.note ? ` · ${s.note}` : ''}
             </div>
           )}
           <RestDivider seconds={restSeconds} dim />
@@ -642,8 +647,8 @@ function ExerciseGrid({
             <button style={actionChip('grey', warmup)} onClick={() => setWarmup((v) => !v)}>
               {warmup ? 'warm-up ✓' : 'warm-up'}
             </button>
-            <button style={actionChip('grey')} onClick={addNote}>
-              note
+            <button style={actionChip('grey', Boolean(note))} onClick={addNote}>
+              {note ? 'note ✓' : 'note'}
             </button>
           </div>
         </div>

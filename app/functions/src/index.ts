@@ -2,13 +2,13 @@ import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import type { CatalogEntry, Cycle, Profile, Readiness, Workout } from './domain'
-import { buildContext, CATALOG, describeWorkout, getISOWeek, type UserData } from './context'
+import { buildContext, buildUserCatalog, describeWorkout, isoWeekId, type UserData } from './context'
 import { generateDraft, validateDraft, type WorkoutDraft } from './creator'
 import { generateJson, generateText, usingMock } from './model'
 import { mockChat, mockReport, mockWeeklySummary } from './mocks'
 import { defineSecret } from 'firebase-functions/params'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
-import { syncZeppForUser, runNightlySync } from './zeppSync'
+import { localDate, syncZeppForUser, runNightlySync } from './zeppSync'
 import { retrieveCards, formatScienceBlock } from './retrieval'
 
 const zeppEmail = defineSecret('ZEPP_EMAIL')
@@ -24,7 +24,10 @@ Always respect the MUST-RESPECT NOTES. Weights are in kg. Be concrete and concis
 
 async function loadUserData(uid: string): Promise<UserData> {
   const userRef = db.collection('users').doc(uid)
-  const today = new Date().toISOString().slice(0, 10)
+  // Readiness docs are keyed by the *local* date — the client writes todayStr()
+  // and the Zepp sync writes localDate(). Deriving it in UTC here read the wrong
+  // day's doc every night between local midnight and 00:00 UTC.
+  const today = localDate(0)
   const [profileSnap, cycleSnap, readinessSnap, workoutsSnap, customExSnap, readinessHistorySnap] = await Promise.all([
     userRef.collection('meta').doc('profile').get(),
     userRef.collection('meta').doc('cycle').get(),
@@ -63,9 +66,7 @@ export const generateReport = onCall(async (req) => {
   }
   const data = await loadUserData(uid)
 
-  const catalogMap = new Map()
-  for (const c of CATALOG) catalogMap.set(c.id, c)
-  for (const c of data.customExercises) catalogMap.set(c.id, c)
+  const catalogMap = buildUserCatalog(data.customExercises)
 
   const text = usingMock
     ? mockReport(data, workout)
@@ -93,8 +94,7 @@ export const generateWeeklySummary = onCall(async (req) => {
         `${buildContext(data)}\n\n=== TASK ===\nWrite this week's training summary (max ~150 words): volume balance across muscle groups vs what the cycle intends, adherence, and any imbalances to flag (call out under-trained muscles by name).`,
       )
 
-  const now = new Date()
-  const week = `${now.getFullYear()}-W${String(getISOWeek(now)).padStart(2, '0')}`
+  const week = isoWeekId(new Date())
   const summary = { week, text, createdAt: Date.now() }
   await db.doc(`users/${uid}/summaries/${week}`).set(summary)
   return summary
@@ -143,10 +143,10 @@ export const createWorkout = onCall(async (req) => {
     return generateDraft(data, instruction)
   }
 
-  const catalogList = [
-    ...CATALOG,
-    ...data.customExercises,
-  ].map(
+  // One catalog for both halves: what the model is offered must be exactly what
+  // validateDraft will accept back, or custom exercises get silently dropped.
+  const catalog = buildUserCatalog(data.customExercises)
+  const catalogList = [...catalog.values()].map(
     (e) => `${e.id} | ${e.name} | ${e.primaryMuscles.join('/')} | ${e.equipment}`,
   ).join('\n')
   let draft: WorkoutDraft
@@ -157,7 +157,7 @@ export const createWorkout = onCall(async (req) => {
         instruction ? `\nUser instruction for this workout: "${instruction}"` : ''
       }\n\nReturn ONLY JSON: {"name": string, "cycleDay": string, "exercises": [{"exerciseId": catalog id, "rationale": one short sentence, "restSeconds": number, "sets": [{"weightKg": number, "reps": number}]}]} with 4-7 exercises in sensible order (compounds first).`,
     )
-    draft = validateDraft(raw, data.workouts)
+    draft = validateDraft(raw, data.workouts, catalog)
   } catch (err) {
     // Model unavailable or returned garbage: fall back to the rule-based draft.
     console.error('createWorkout falling back to rule-based draft:', err)
