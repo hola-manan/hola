@@ -91,6 +91,31 @@ export interface WearableStatus {
   lastDataDate?: string
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  text: string
+}
+
+/**
+ * Coerce untrusted callable input into well-formed chat turns, keeping the last
+ * `limit`. Malformed entries are dropped rather than indexed into — reading
+ * `.role`/`.text` off arbitrary JSON turned a bad request into a 500 raised deep
+ * inside prompt assembly. Trimming happens after filtering so junk entries can't
+ * crowd real turns out of the window.
+ */
+export function normalizeChatMessages(raw: unknown, limit = 12): ChatMessage[] {
+  if (!Array.isArray(raw)) return []
+  const out: ChatMessage[] = []
+  for (const m of raw) {
+    if (!m || typeof m !== 'object') continue
+    const { role, text } = m as Record<string, unknown>
+    if (role !== 'user' && role !== 'assistant') continue
+    if (typeof text !== 'string' || !text.trim()) continue
+    out.push({ role, text })
+  }
+  return out.slice(-limit)
+}
+
 export const MAX_REPS_FOR_RM = 12
 
 export function epley1RM(weightKg: number, reps: number): number | null {

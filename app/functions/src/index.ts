@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
-import type { CatalogEntry, Cycle, Profile, Readiness, Workout } from './domain'
+import { normalizeChatMessages, type CatalogEntry, type Cycle, type Profile, type Readiness, type Workout } from './domain'
 import { buildContext, buildUserCatalog, describeWorkout, isoWeekId, type UserData } from './context'
 import { generateDraft, validateDraft, type WorkoutDraft } from './creator'
 import { generateJson, generateText, usingMock } from './model'
@@ -100,15 +100,9 @@ export const generateWeeklySummary = onCall(async (req) => {
   return summary
 })
 
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  text: string
-}
-
 export const coachChat = onCall(async (req) => {
   const uid = requireAuth(req.auth?.uid)
-  const messages = (Array.isArray(req.data?.messages) ? req.data.messages : []) as ChatMessage[]
-  const trimmed = messages.slice(-12)
+  const trimmed = normalizeChatMessages(req.data?.messages)
   if (!trimmed.length || trimmed[trimmed.length - 1].role !== 'user') {
     throw new HttpsError('invalid-argument', 'messages must end with a user message')
   }
@@ -126,7 +120,7 @@ export const coachChat = onCall(async (req) => {
   const prompt = [
     buildContext(data),
     scienceBlock,
-    `=== CONVERSATION ===\n${transcript}\n\nReply as COACH (max ~150 words). Where a SCIENCE REFERENCE supports a claim, ground your answer in it and cite it inline like (Schoenfeld 2017); if you list sources, use only the provided references — never invent citations or cite a reference you didn't use.`
+    `=== CONVERSATION ===\n${transcript}\n\nReply as COACH (max ~150 words). Where a SCIENCE REFERENCE supports a claim, ground your answer in it and cite it inline in the author-year form the reference text itself uses, e.g. (Schoenfeld 2017). Cite only sources listed under that reference's "Sources:" — never invent a citation or cite a reference you didn't use.`
   ].filter(Boolean).join('\n\n')
 
   const text = await generateText(SYSTEM, prompt)

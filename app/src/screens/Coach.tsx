@@ -34,12 +34,21 @@ export function Coach() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const busyRef = useRef(false)
+  /** Which thread `messages` currently belongs to (null = unsaved new chat). */
+  const shownIdRef = useRef<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!routeId) {
+    const target = routeId ?? null
+    // Moving to a different conversation must drop the previous one's state:
+    // `thread` decides which doc send() writes to, so a stale one routes the
+    // next message into the thread we just navigated away from.
+    if (shownIdRef.current !== target) {
       setThread(null)
       setMessages([])
+      shownIdRef.current = target
+    }
+    if (!routeId) {
       setThreadLoaded(true)
       return
     }
@@ -48,7 +57,10 @@ export function Coach() {
       setThread(t)
       setThreadLoaded(true)
       // don't clobber the optimistic message while a reply is in flight
-      if (t && !busyRef.current) setMessages(t.messages)
+      if (busyRef.current) return
+      // t === null means the thread was deleted — clearing lets the stale-link
+      // guard below fire instead of leaving a deleted conversation on screen.
+      setMessages(t ? t.messages : [])
     })
   }, [uid, routeId])
 
@@ -60,12 +72,14 @@ export function Coach() {
 
   const send = async (text0?: string) => {
     const text = (text0 ?? input).trim()
-    if (!text || busy) return
+    // busyRef, not the busy state: two sends in one tick both read state as false
+    // and fire two concurrent (billed) requests whose writes race.
+    if (!text || busyRef.current) return
+    busyRef.current = true
     const next: ChatMessage[] = [...messages, { role: 'user', text }]
     setMessages(next)
     setInput('')
     setBusy(true)
-    busyRef.current = true
     setError('')
     try {
       const res = await ai.coachChat({ messages: next })
@@ -73,13 +87,18 @@ export function Coach() {
       setMessages(full)
       const now = Date.now()
       const saved: CoachThread = {
-        id: thread?.id ?? routeId ?? crypto.randomUUID(),
+        // the URL is the source of truth for which thread this is
+        id: routeId ?? thread?.id ?? crypto.randomUUID(),
         title: thread?.title ?? text.slice(0, 48),
         messages: full.slice(-100),
         createdAt: thread?.createdAt ?? now,
         updatedAt: now,
       }
       await repo.saveCoachThread(uid, saved)
+      // hold it locally so a follow-up sent before the snapshot lands keeps the
+      // thread's id, title and createdAt instead of re-deriving them
+      setThread(saved)
+      shownIdRef.current = saved.id
       if (!routeId) navigate(`/coach/${saved.id}`, { replace: true })
     } catch (e) {
       setError((e as Error).message)
@@ -171,6 +190,7 @@ export function Coach() {
           />
           <button
             onClick={() => send()}
+            aria-label="send"
             disabled={!input.trim() || busy}
             style={{ color: (!input.trim() || busy) ? '#5a6270' : '#c8f04b', fontSize: 18, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
           >
